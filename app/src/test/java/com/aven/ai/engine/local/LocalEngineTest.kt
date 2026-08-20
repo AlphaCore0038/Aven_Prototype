@@ -1,0 +1,61 @@
+package com.aven.ai.engine.local
+
+import com.aven.ai.data.local.MessageEntity
+import com.aven.ai.engine.GenerateRequest
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class LocalEngineTest {
+
+    private val engine = LocalEngine(null)
+
+    private fun request(
+        prompt: String = "hi",
+        history: List<MessageEntity> = emptyList()
+    ) = GenerateRequest(
+        conversationId = 1L,
+        prompt = prompt,
+        history = history,
+        isPrivate = false
+    )
+
+    private fun message(role: String, content: String) = MessageEntity(
+        conversationId = 1L,
+        role = role,
+        content = content,
+        createdAt = 0L
+    )
+
+    @Test
+    fun `buildPrompt uses the llama 3-2 chat template`() {
+        val prompt = engine.buildPrompt(request("hello"))
+        assertTrue("starts with BOS + system header", prompt.startsWith("<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"))
+        assertTrue("contains system instructions", prompt.contains("You are Aven"))
+        assertTrue("contains the user message", prompt.contains("<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nhello<|eot_id|>"))
+        assertTrue("ends with assistant header then a newline", prompt.endsWith("assistant<|end_header_id|>\n\n\n"))
+    }
+
+    @Test
+    fun `buildPrompt includes history before the new prompt`() {
+        val prompt = engine.buildPrompt(
+            request("new", history = listOf(message("user", "old question")))
+        )
+        val userIndex = prompt.indexOf("old question")
+        val assistantIndex = prompt.indexOf("new")
+        assertTrue(userIndex in 0 until assistantIndex)
+        assertTrue(prompt.contains("<|start_header_id|>user<|end_header_id|>"))
+    }
+
+    @Test
+    fun `buildPrompt truncates oversized history`() {
+        val big = "x".repeat(6000)
+        val history = listOf(
+            message("user", big),
+            message("assistant", big)
+        )
+        val prompt = engine.buildPrompt(request("new", history))
+        assertTrue("first history message fits the budget", prompt.contains(big))
+        assertTrue("second history message is truncated away", !prompt.contains(big + big))
+        assertTrue("the new prompt is always present", prompt.contains("new"))
+    }
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="aven_surface">#0E1116</color>
+    <color name="aven_surface_high">#161B22</color>
+    <color name="aven_accent">#6C8CFF</color>
+    <color name="aven_on_accent">#0B0E13</color>
+    <color name="ic_launcher_background">#0E1116</color>
+</resources>
