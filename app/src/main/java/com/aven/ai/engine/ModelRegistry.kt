@@ -50,16 +50,30 @@ class ModelRegistry(
         ),
         AiModelOption(
             providerId = ZenEngine.PROVIDER_ID,
-            modelId = ZenEngine.DEFAULT_MODEL,
-            displayName = "DeepSeek V4 Flash (Free)",
-            description = "OpenCode Zen — fast, free",
+            modelId = "big-pickle",
+            displayName = "Big Pickle",
+            description = "OpenCode Zen — free",
             kind = EngineKind.REMOTE
         ),
         AiModelOption(
             providerId = ZenEngine.PROVIDER_ID,
-            modelId = "big-pickle",
-            displayName = "Big Pickle",
+            modelId = "hy3-free",
+            displayName = "Hy3",
             description = "OpenCode Zen — free",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = ZenEngine.PROVIDER_ID,
+            modelId = "muse-spark-1.2-contributor-free",
+            displayName = "Muse Spark",
+            description = "OpenCode Zen — contributor, free",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = ZenEngine.PROVIDER_ID,
+            modelId = "x-preview-f-free",
+            displayName = "Ox Alpha",
+            description = "OpenCode Zen — preview, free",
             kind = EngineKind.REMOTE
         ),
         AiModelOption(
@@ -98,7 +112,8 @@ class ModelRegistry(
         ZenEngine.PROVIDER_ID -> ZenEngine(
             apiKey = { keyManager.readKey(KeyManager.Provider.ZEN) },
             client = client,
-            modelId = option.modelId
+            modelId = option.modelId,
+            engineDisplayName = option.displayName
         )
         OpenRouterEngine.PROVIDER_ID -> OpenRouterEngine(
             apiKey = { keyManager.readKey(KeyManager.Provider.OPENROUTER) },

@@ -14,8 +14,35 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 enum class MessageRole { USER, ASSISTANT }
+
+/**
+ * Cleans a raw model-generated title into a short single-line label:
+ * strips wrapping quotes and "Title:" prefixes, collapses whitespace,
+ * removes a trailing period, and caps the length.
+ */
+internal fun sanitizeTitle(raw: String): String {
+    var t = raw.trim()
+    t = t.replace(Regex("^title\\s*[:\\-–—]\\s*", RegexOption.IGNORE_CASE), "")
+    if (t.length >= 2) {
+        val first = t.first()
+        val last = t.last()
+        if (first == last && (first == '"' || first == '\'' || first == '`')) {
+            t = t.substring(1, t.length - 1).trim()
+        }
+    }
+    t = t.lineSequence().firstOrNull { it.isNotBlank() }?.trim() ?: ""
+    t = t.replace(Regex("\\s+"), " ")
+    if (t.endsWith(".")) t = t.dropLast(1).trimEnd()
+    if (t.length > MAX_GENERATED_TITLE_LENGTH) {
+        t = t.take(MAX_GENERATED_TITLE_LENGTH).trimEnd()
+    }
+    return t
+}
+
+private const val MAX_GENERATED_TITLE_LENGTH = 48
 
 data class UiMessage(
     val id: Long,
@@ -54,6 +81,7 @@ class ChatController(
     private var conversationId: Long = 0L
     private var generationJob: Job? = null
     private var observerJob: Job? = null
+    private val titledConversations = mutableSetOf<Long>()
 
     fun start(conversationId: Long, isPrivate: Boolean) {
         if (observerJob?.isActive == true &&
@@ -84,6 +112,7 @@ class ChatController(
 
         val prompt = trimmed
         val now = System.currentTimeMillis()
+        val wasNewConversation = conversationId == 0L
 
         scope.launch {
             try {
@@ -146,6 +175,9 @@ class ChatController(
                                 assistantMessage(targetConversationId, finalText, System.currentTimeMillis())
                             )
                         }
+                        if (wasNewConversation && finalText.isNotBlank()) {
+                            generateAndStoreTitle(targetConversationId, prompt, finalText)
+                        }
                     } catch (e: CancellationException) {
                         val partial = _uiState.value.streamingText
                         if (partial.isNotBlank()) {
@@ -172,6 +204,49 @@ class ChatController(
 
     fun stop() {
         generationJob?.cancel()
+    }
+
+    /**
+     * Asks the active engine for a short conversation title after the first
+     * exchange and renames the Room row. Fire-and-forget: any failure keeps
+     * the raw-text fallback title silently. Runs at most once per
+     * conversation per controller lifetime.
+     */
+    private fun generateAndStoreTitle(conversationId: Long, userPrompt: String, assistantReply: String) {
+        titledConversations.add(conversationId)
+        scope.launch {
+            try {
+                val engine = engineProvider()
+                val instruction = buildString {
+                    append("Generate a short title (maximum 5 words, no quotes) ")
+                    append("summarizing a conversation that starts with:\n")
+                    append("User: ${userPrompt.take(TITLE_CONTEXT_CHARS)}\n")
+                    append("Assistant: ${assistantReply.take(TITLE_CONTEXT_CHARS)}\n")
+                    append("Reply with only the title.")
+                }
+                val raw = withTimeoutOrNull(TITLE_TIMEOUT_MS) {
+                    val builder = StringBuilder()
+                    engine.generate(
+                        GenerateRequest(
+                            conversationId = conversationId,
+                            prompt = instruction,
+                            history = emptyList(),
+                            isPrivate = false
+                        )
+                    ).collect { builder.append(it) }
+                    builder.toString()
+                } ?: return@launch
+
+                val title = sanitizeTitle(raw)
+                if (title.isNotBlank()) {
+                    chatDao.renameConversation(conversationId, title)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Title generation is cosmetic; the fallback title stays.
+            }
+        }
     }
 
     private fun observe(id: Long) {
@@ -209,5 +284,7 @@ class ChatController(
 
     private companion object {
         const val MAX_TITLE_LENGTH = 60
+        const val TITLE_TIMEOUT_MS = 20_000L
+        const val TITLE_CONTEXT_CHARS = 400
     }
 }
