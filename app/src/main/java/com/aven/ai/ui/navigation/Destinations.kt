@@ -10,6 +10,7 @@ object Destinations {
     const val SETTINGS = "settings"
     const val ABOUT = "about"
     const val API_KEYS = "api_keys"
+    const val USER_DETAILS = "user_details"
 
     const val ARG_PRIVATE = "private"
     const val ARG_CONVERSATION_ID = "conversationId"

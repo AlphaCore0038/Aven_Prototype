@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,14 +26,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.aven.ai.BuildConfig
-import com.aven.ai.engine.local.LocalModelState
+import com.aven.ai.data.settings.SettingsRepository
+import kotlinx.coroutines.launch
 
 /**
  * Aven settings — grouped into AI & Models, Appearance, Privacy, Data and
@@ -41,15 +45,17 @@ import com.aven.ai.engine.local.LocalModelState
  */
 @Composable
 fun SettingsScreen(
+    settingsRepository: SettingsRepository,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenApiKeys: () -> Unit,
+    onOpenUserDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
     ) {
@@ -63,22 +69,22 @@ fun SettingsScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             Text(
                 text = "Settings",
                 style = MaterialTheme.typography.displayMedium,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
-        HorizontalDivider(color = Color.White, thickness = 2.dp)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 2.dp)
 
         SettingsRow("Theme") {
-            ThemeSelector()
+            ThemeSelector(settingsRepository)
         }
-        SettingsRow("User details")
+        SettingsRow("User details", onClick = onOpenUserDetails)
         SettingsRow("API keys", onClick = onOpenApiKeys)
         SettingsRow("Clear Chat history")
         SettingsRow("About Aven", onClick = onOpenAbout)
@@ -103,23 +109,31 @@ private fun SettingsRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.displayMedium,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (content != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 content()
             }
         }
-        HorizontalDivider(color = Color.White, thickness = 2.dp)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 2.dp)
     }
 }
 
 @Composable
-private fun ThemeSelector() {
+private fun ThemeSelector(settingsRepository: SettingsRepository) {
+    val settings by settingsRepository.settings.collectAsStateWithLifecycle(
+        initialValue = SettingsRepository.AppSettings()
+    )
+    var expanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val isLight = settings.theme == SettingsRepository.AppSettings.THEME_LIGHT
+
     Surface(
+        onClick = { expanded = !expanded },
         shape = RoundedCornerShape(16.dp),
-        color = Color.Black,
-        border = BorderStroke(2.dp, Color.White),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -128,15 +142,80 @@ private fun ThemeSelector() {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Dark",
+                text = if (isLight) "Light" else "Dark",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+
+    if (expanded) {
+        Column(modifier = Modifier.padding(top = 8.dp)) {
+            ThemeOption(
+                label = "Dark",
+                selected = !isLight,
+                onSelect = {
+                    scope.launch {
+                        settingsRepository.setTheme(SettingsRepository.AppSettings.THEME_DARK)
+                    }
+                    expanded = false
+                }
+            )
+            ThemeOption(
+                label = "Light",
+                selected = isLight,
+                onSelect = {
+                    scope.launch {
+                        settingsRepository.setTheme(SettingsRepository.AppSettings.THEME_LIGHT)
+                    }
+                    expanded = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        onClick = onSelect,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        },
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }

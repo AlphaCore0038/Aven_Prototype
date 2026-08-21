@@ -2,6 +2,7 @@ package com.aven.ai.di
 
 import android.content.Context
 import com.aven.ai.data.local.AvenDatabase
+import com.aven.ai.data.network.ConnectivityMonitor
 import com.aven.ai.data.network.HttpClientFactory
 import com.aven.ai.data.security.KeyManager
 import com.aven.ai.data.settings.SettingsRepository
@@ -40,6 +41,11 @@ class AppContainer(context: Context) {
     val userProfileRepository: UserProfileRepository by lazy { UserProfileRepository(applicationContext) }
 
     val httpClient: OkHttpClient by lazy { HttpClientFactory.create() }
+
+    /** Real internet connectivity of the device (validated network). */
+    val connectivityMonitor: ConnectivityMonitor by lazy {
+        ConnectivityMonitor(applicationContext)
+    }
 
     private val applicationScope: CoroutineScope by lazy {
         CoroutineScope(SupervisorJob() + Dispatchers.Default)

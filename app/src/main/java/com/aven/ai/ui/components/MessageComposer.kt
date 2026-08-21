@@ -49,7 +49,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -61,36 +60,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.unit.dp
-import com.aven.ai.ui.theme.AvenAccent
-import com.aven.ai.ui.theme.AvenError
-import com.aven.ai.ui.theme.AvenOnAccent
 import com.aven.ai.ui.theme.AvenSuccess
-import com.aven.ai.ui.theme.AvenWarning
-
-/**
- * Privacy-critical online/offline status of the active AI provider.
- * Labels are always shown next to a color dot; color is never the only signal.
- */
-enum class ComposerStatus(
-    val label: String,
-    val dotColor: Color,
-    val textColor: Color,
-    val contentDescription: String
-) {
-    OFFLINE("OFFLINE", AvenSuccess, AvenSuccess, "Local model — your messages stay on this device"),
-    ONLINE("ONLINE", AvenSuccess, AvenSuccess, "Online provider — your messages are sent to the cloud provider"),
-    LOADING("LOADING", AvenWarning, AvenWarning, "Local model is loading"),
-    CONNECTING("CONNECTING", AvenWarning, AvenWarning, "Connecting to the online provider"),
-    GENERATING("GENERATING", AvenAccent, AvenAccent, "The model is generating a response"),
-    NOT_INSTALLED("NOT INSTALLED", AvenError, AvenError, "Local model is not installed"),
-    UNAVAILABLE("UNAVAILABLE", AvenError, AvenError, "The selected provider is unavailable")
-}
 
 /**
  * The Aven composer — a single floating rounded container with:
  *   input zone  -> "+" action  |  multiline text  (no mic)
  *   divider
- *   control row -> model chip  |  status  |  send/stop
+ *   control row -> model chip  |  connectivity indicator  |  send/stop
  *
  * The composer is intentionally controlled: [text]/[onTextChange] are owned by
  * the caller (ChatViewModel from Phase 3 onward) so suggestions and rotation
@@ -100,7 +76,7 @@ enum class ComposerStatus(
 fun MessageComposer(
     hint: String,
     modelLabel: String,
-    status: ComposerStatus,
+    isOnline: Boolean,
     isGenerating: Boolean,
     enabled: Boolean,
     text: String,
@@ -114,7 +90,8 @@ fun MessageComposer(
 ) {
     val outerShape = RoundedCornerShape(24.dp)
     val innerShape = RoundedCornerShape(16.dp)
-    val borderColor = Color.White
+    val borderColor = MaterialTheme.colorScheme.outline
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest
     val inputTextStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Serif)
     val canSend = text.isNotBlank() && !isGenerating && enabled
     val canType = enabled && !isGenerating
@@ -122,7 +99,7 @@ fun MessageComposer(
     Surface(
         modifier = modifier,
         shape = outerShape,
-        color = Color.Black,
+        color = surfaceColor,
         border = BorderStroke(2.5.dp, borderColor)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -130,7 +107,7 @@ fun MessageComposer(
             val fieldModifier = focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier
             Surface(
                 shape = innerShape,
-                color = Color.Black,
+                color = surfaceColor,
                 border = BorderStroke(2.dp, borderColor),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -145,8 +122,8 @@ fun MessageComposer(
                         modifier = fieldModifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
-                        textStyle = inputTextStyle.copy(color = Color.White),
-                        cursorBrush = SolidColor(Color.White),
+                        textStyle = inputTextStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Default
@@ -157,7 +134,7 @@ fun MessageComposer(
                                     Text(
                                         text = "Prompt Here...",
                                         style = inputTextStyle,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )
                                 }
                                 innerTextField()
@@ -179,7 +156,7 @@ fun MessageComposer(
                     onClick = onOpenModelSelection,
                     enabled = enabled && !isGenerating,
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.Black,
+                    color = surfaceColor,
                     border = BorderStroke(2.dp, borderColor),
                     modifier = Modifier.weight(1f)
                 ) {
@@ -188,9 +165,9 @@ fun MessageComposer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "-- Model --",
+                            text = modelLabel,
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -200,7 +177,7 @@ fun MessageComposer(
                 // status
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.Black,
+                    color = surfaceColor,
                     border = BorderStroke(2.dp, borderColor),
                     modifier = Modifier.weight(1f)
                 ) {
@@ -213,13 +190,13 @@ fun MessageComposer(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(if (status == ComposerStatus.ONLINE || status == ComposerStatus.OFFLINE) Color(0xFF4CAF50) else Color.Gray)
+                                .background(if (isOnline) AvenSuccess else MaterialTheme.colorScheme.error)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (status == ComposerStatus.ONLINE) "Online" else status.label,
+                            text = if (isOnline) "Online" else "Offline",
                             style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Cursive),
-                            color = if (status == ComposerStatus.ONLINE || status == ComposerStatus.OFFLINE) Color(0xFF4CAF50) else Color.White
+                            color = if (isOnline) AvenSuccess else MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -232,12 +209,12 @@ fun MessageComposer(
                     enabled = canSend || isGenerating,
                     modifier = Modifier
                         .size(48.dp)
-                        .border(2.dp, Color.White, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     Icon(
                         imageVector = if (isGenerating) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send,
                         contentDescription = null,
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -278,27 +255,6 @@ private fun ModelChip(
 }
 
 @Composable
-private fun StatusIndicator(status: ComposerStatus) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.semantics { contentDescription = status.contentDescription }
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(status.dotColor)
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = status.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = status.textColor
-        )
-    }
-}
-
-@Composable
 private fun SendStopButton(
     isGenerating: Boolean,
     enabled: Boolean,
@@ -307,15 +263,15 @@ private fun SendStopButton(
 ) {
     val bgColor by animateColorAsState(
         targetValue = if (isGenerating) {
-            AvenError.copy(alpha = 0.16f)
+            MaterialTheme.colorScheme.error.copy(alpha = 0.16f)
         } else {
-            AvenAccent
+            MaterialTheme.colorScheme.primary
         },
         animationSpec = tween(150),
         label = "sendStopBg"
     )
     val iconColor by animateColorAsState(
-        targetValue = if (isGenerating) AvenError else AvenOnAccent,
+        targetValue = if (isGenerating) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimary,
         animationSpec = tween(150),
         label = "sendStopIcon"
     )

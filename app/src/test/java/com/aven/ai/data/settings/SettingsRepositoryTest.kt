@@ -24,10 +24,10 @@ class SettingsRepositoryTest {
     }
 
     @Test
-    fun `settings default to system theme and no model`() = runTest {
+    fun `settings default to dark theme and no model`() = runTest {
         val repo = SettingsRepository(context)
         val defaults = repo.settings.first()
-        assertEquals(SettingsRepository.AppSettings.THEME_SYSTEM, defaults.theme)
+        assertEquals(SettingsRepository.AppSettings.THEME_DARK, defaults.theme)
         assertNull(defaults.defaultProviderId)
         assertNull(defaults.defaultModelId)
     }

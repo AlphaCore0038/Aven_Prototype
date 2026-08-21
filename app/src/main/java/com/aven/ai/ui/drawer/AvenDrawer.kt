@@ -1,8 +1,9 @@
 package com.aven.ai.ui.drawer
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,10 +31,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.aven.ai.R
 import com.aven.ai.ui.components.AvenFullLogo
 
 /**
@@ -55,8 +60,8 @@ fun AvenDrawer(
             .width(320.dp)
             .statusBarsPadding()
             .navigationBarsPadding(),
-        drawerContainerColor = Color.Black,
-        drawerContentColor = Color.White,
+        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        drawerContentColor = MaterialTheme.colorScheme.onSurface,
         drawerShape = RoundedCornerShape(0.dp)
     ) {
         Column(
@@ -64,14 +69,28 @@ fun AvenDrawer(
                 .fillMaxSize()
                 .padding(24.dp)
         ) {
-            Text(
-                text = "Aven",
-                style = MaterialTheme.typography.displayMedium,
-                color = Color.White
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Aven",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+
+                Image(
+                    painter = painterResource(id = R.drawable.private_chat_icon),
+                    contentDescription = "Private Mode",
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(48.dp)
+                        .border(2.5.dp, Color.White, CircleShape)
+                        .padding(8.dp),
+                    colorFilter = ColorFilter.tint(Color.White, blendMode = BlendMode.Multiply)
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = Color.White, thickness = 2.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 2.dp)
             Spacer(modifier = Modifier.height(24.dp))
 
             Column(modifier = Modifier.weight(1f)) {
@@ -91,20 +110,20 @@ fun AvenDrawer(
                     onClick = onOpenSettings,
                     modifier = Modifier
                         .size(56.dp)
-                        .border(2.dp, Color.White, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
                         contentDescription = "Settings",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 Surface(
                     onClick = onNewChat,
                     shape = RoundedCornerShape(28.dp),
-                    color = Color(0xFF2C2C2C),
-                    contentColor = Color.White
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
@@ -126,7 +145,7 @@ private fun DrawerSectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleLarge,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(vertical = 12.dp)
     )
 }

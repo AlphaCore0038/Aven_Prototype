@@ -16,6 +16,7 @@ import com.aven.ai.engine.local.LocalModelState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class ChatViewModel(private val container: AppContainer) : ViewModel() {
@@ -54,6 +55,17 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         )
 
     val localModelState: StateFlow<LocalModelState> = container.modelManager.state
+
+    /** The user's stored name, used in the "Hey {name}...." welcome greeting. */
+    val userName: StateFlow<String> =
+        container.userProfileRepository.profile.map { it.name }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = ""
+        )
+
+    /** True when the device has a validated internet connection. */
+    val isOnline: StateFlow<Boolean> = container.connectivityMonitor.isOnline
 
     fun installLocalModel() = container.modelManager.install()
 

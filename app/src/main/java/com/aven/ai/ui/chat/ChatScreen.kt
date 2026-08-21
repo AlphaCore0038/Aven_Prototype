@@ -1,6 +1,7 @@
 package com.aven.ai.ui.chat
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Menu
@@ -49,10 +49,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -66,19 +69,8 @@ import com.aven.ai.R
 import com.aven.ai.engine.AiModelOption
 import com.aven.ai.engine.EngineKind
 import com.aven.ai.engine.local.LocalModelState
-import com.aven.ai.ui.components.AvenFullLogo
-import com.aven.ai.ui.components.AvenMonogram
-import com.aven.ai.ui.components.ComposerStatus
 import com.aven.ai.ui.components.MessageComposer
-import com.aven.ai.ui.theme.NoirGray
 import kotlinx.coroutines.launch
-
-private val StarterPrompts = listOf(
-    "Explain a concept I'm learning, step by step",
-    "Help me plan my day efficiently",
-    "Summarize an article or document for me",
-    "Help me write and refine an email"
-)
 
 /**
  * The main chat screen. Owns the ChatViewModel and renders the persisted
@@ -97,12 +89,12 @@ fun ChatScreen(
     val viewModel: ChatViewModel = viewModel(factory = ChatViewModel.Factory)
     val controller = viewModel.controller
     val state by controller.uiState.collectAsStateWithLifecycle()
-    val engine by viewModel.currentEngine.collectAsStateWithLifecycle()
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
     val localModelState by viewModel.localModelState.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
 
     var text by rememberSaveable { mutableStateOf("") }
-    var exploreOpen by remember { mutableStateOf(false) }
     var modelSheetOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
@@ -166,11 +158,7 @@ fun ChatScreen(
                     }
                 }
             } else {
-                WelcomeView(
-                    isPrivate = isPrivate,
-                    onAskAven = { focusRequester.requestFocus() },
-                    onExplore = { exploreOpen = true }
-                )
+                WelcomeView(isPrivate = isPrivate, userName = userName)
             }
         }
 
@@ -181,12 +169,7 @@ fun ChatScreen(
                 stringResource(R.string.composer_hint_chat)
             },
             modelLabel = currentModelLabel,
-            status = when {
-                state.isGenerating -> ComposerStatus.GENERATING
-                state.lastError != null -> ComposerStatus.UNAVAILABLE
-                engine is com.aven.ai.engine.UnavailableEngine -> ComposerStatus.OFFLINE
-                else -> ComposerStatus.ONLINE
-            },
+            isOnline = isOnline,
             isGenerating = state.isGenerating,
             enabled = true,
             text = text,
@@ -213,17 +196,6 @@ fun ChatScreen(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(bottom = 10.dp)
-        )
-    }
-
-    if (exploreOpen) {
-        ExplorePromptsSheet(
-            onDismiss = { exploreOpen = false },
-            onPickPrompt = { prompt ->
-                text = prompt
-                exploreOpen = false
-                focusRequester.requestFocus()
-            }
         )
     }
 
@@ -266,7 +238,7 @@ private fun ModelSelectionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = NoirGray,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
@@ -283,17 +255,17 @@ private fun ModelSelectionSheet(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .size(32.dp)
-                            .border(2.dp, Color.White, CircleShape)
+                            .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                             .padding(4.dp)
                     )
                 }
                 Text(
                     text = "Model-Selection",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
@@ -333,8 +305,8 @@ private fun ModelOptionRow(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = NoirGray,
-        border = if (isCurrent) BorderStroke(2.dp, Color.White) else null,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = if (isCurrent) BorderStroke(2.dp, MaterialTheme.colorScheme.outline) else null,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
@@ -343,12 +315,12 @@ private fun ModelOptionRow(
             Text(
                 text = "(${option.displayName})",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = option.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -373,16 +345,14 @@ private fun ChatTopBar(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(48.dp)
-                .border(2.dp, Color.White, CircleShape)
+                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Filled.Menu,
                 contentDescription = "Open menu",
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
-
-        AvenMonogram(size = 40.dp)
 
         IconButton(
             onClick = onTogglePrivate,
@@ -391,63 +361,15 @@ private fun ChatTopBar(
                 .size(48.dp)
                 .border(2.dp, Color.White, CircleShape)
         ) {
-            Icon(
-                imageVector = Icons.Filled.Face, // Using Face as a placeholder for "glasses"
+            Image(
+                painter = painterResource(id = R.drawable.private_chat_icon),
                 contentDescription = "Toggle Private Mode",
-                tint = if (isPrivate) Color(0xFF4CAF50) else Color.White
+                colorFilter = ColorFilter.tint(
+                    if (isPrivate) Color(0xFF4CAF50) else Color.White,
+                    blendMode = BlendMode.Multiply
+                ),
+                modifier = Modifier.size(32.dp)
             )
-        }
-    }
-}
-
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ExplorePromptsSheet(
-    onDismiss: () -> Unit,
-    onPickPrompt: (String) -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "Explore",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Pick a starting point — Aven will wait for your prompt.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            StarterPrompts.forEach { prompt ->
-                Surface(
-                    onClick = { onPickPrompt(prompt) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ) {
-                    Text(
-                        text = prompt,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
-                    )
-                }
-            }
         }
     }
 }

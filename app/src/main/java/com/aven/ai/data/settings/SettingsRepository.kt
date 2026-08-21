@@ -15,7 +15,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 class SettingsRepository(private val context: Context) {
 
     data class AppSettings(
-        val theme: String = THEME_SYSTEM,
+        val theme: String = THEME_DARK,
         val defaultProviderId: String? = null,
         val defaultModelId: String? = null
     ) {
@@ -28,7 +28,7 @@ class SettingsRepository(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
-            theme = prefs[KEY_THEME] ?: AppSettings.THEME_SYSTEM,
+            theme = prefs[KEY_THEME] ?: AppSettings.THEME_DARK,
             defaultProviderId = prefs[KEY_DEFAULT_PROVIDER],
             defaultModelId = prefs[KEY_DEFAULT_MODEL]
         )

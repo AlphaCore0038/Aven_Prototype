@@ -40,7 +40,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import android.content.ClipData
-import com.aven.ai.ui.theme.NoirGray
 import kotlinx.coroutines.launch
 
 private val UserBubbleShape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)
@@ -60,8 +59,8 @@ fun MessageRow(message: UiMessage, modifier: Modifier = Modifier) {
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isUser) Color.Transparent else NoirGray,
-                contentColor = Color.White
+                color = if (isUser) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Text(
                     text = message.content,
@@ -95,8 +94,8 @@ fun StreamingRow(
     Row(modifier = modifier.fillMaxWidth()) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = NoirGray,
-            contentColor = Color.White
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ) {
             if (text.isEmpty()) {
                 ThinkingDots()
@@ -104,12 +103,12 @@ fun StreamingRow(
                 Text(
                     text = buildAnnotatedString {
                         append(text)
-                        withStyle(SpanStyle(color = Color.White.copy(alpha = cursorAlpha))) {
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface.copy(alpha = cursorAlpha))) {
                             append("▍")
                         }
                     },
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

@@ -11,6 +11,7 @@ import com.aven.ai.ui.about.AboutScreen
 import com.aven.ai.ui.chat.ChatScreen
 import com.aven.ai.ui.settings.ApiKeysScreen
 import com.aven.ai.ui.settings.SettingsScreen
+import com.aven.ai.ui.settings.UserDetailsScreen
 
 /**
  * Aven navigation graph. The Chat screen carries optional [Destinations.ARG_PRIVATE]
@@ -61,10 +62,23 @@ fun AvenNavHost(
         }
 
         composable(Destinations.SETTINGS) {
+            val app = androidx.compose.ui.platform.LocalContext.current
+                .applicationContext as AvenApplication
             SettingsScreen(
+                settingsRepository = app.container.settingsRepository,
                 onBack = { navController.popBackStack() },
                 onOpenAbout = { navController.navigate(Destinations.ABOUT) },
-                onOpenApiKeys = { navController.navigate(Destinations.API_KEYS) }
+                onOpenApiKeys = { navController.navigate(Destinations.API_KEYS) },
+                onOpenUserDetails = { navController.navigate(Destinations.USER_DETAILS) }
+            )
+        }
+
+        composable(Destinations.USER_DETAILS) {
+            val app = androidx.compose.ui.platform.LocalContext.current
+                .applicationContext as AvenApplication
+            UserDetailsScreen(
+                userProfileRepository = app.container.userProfileRepository,
+                onBack = { navController.popBackStack() }
             )
         }
 
