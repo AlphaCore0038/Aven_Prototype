@@ -66,6 +66,7 @@ fun AvenNavHost(
                 .applicationContext as AvenApplication
             SettingsScreen(
                 settingsRepository = app.container.settingsRepository,
+                chatDao = app.container.chatDao,
                 onBack = { navController.popBackStack() },
                 onOpenAbout = { navController.navigate(Destinations.ABOUT) },
                 onOpenApiKeys = { navController.navigate(Destinations.API_KEYS) },

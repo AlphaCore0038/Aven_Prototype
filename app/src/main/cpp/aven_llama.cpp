@@ -2,9 +2,14 @@
 // Only greedy sampling is used; stop tokens end generation.
 
 #include <jni.h>
+#include <algorithm>
+#include <android/log.h>
 #include <atomic>
 #include <cstring>
+#include <ctime>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "llama.h"
@@ -14,6 +19,41 @@ namespace {
 constexpr int MAX_TOKENS = 1024;
 
 std::atomic<bool> g_stop(false);
+
+// Route llama.cpp / ggml logs (LLAMA_LOG_*, GGML_ABORT reasons) into logcat;
+// they go to stdout by default, which Android discards.
+void android_log_callback(ggml_log_level level, const char * text, void * /*user_data*/) {
+    android_LogPriority prio = ANDROID_LOG_INFO;
+    if (level == GGML_LOG_LEVEL_WARN) prio = ANDROID_LOG_WARN;
+    else if (level == GGML_LOG_LEVEL_ERROR || level == GGML_LOG_LEVEL_CONT) prio = ANDROID_LOG_ERROR;
+    // ggml emits line fragments for CONT levels; pass through as-is.
+    __android_log_print(prio, "aven-llama", "%s", text);
+}
+
+// llama_backend_init must run once per process; repeated calls leak.
+std::once_flag g_backend_once;
+
+void init_backend_once() {
+    std::call_once(g_backend_once, [] {
+        // llama_log_set covers libllama; ggml_log_set covers the ggml kernels
+        // (abort reasons, backend errors). Both land in logcat under
+        // the "aven-llama" tag.
+        llama_log_set(android_log_callback, nullptr);
+        ggml_log_set(android_log_callback, nullptr);
+        llama_backend_init();
+        llama_numa_init(GGML_NUMA_STRATEGY_DISABLED);
+    });
+}
+
+/**
+ * Mobile big.LITTLE heuristic: use half of the reported cores, clamped to a
+ * sane range. Pure little-core scheduling hurts more than fewer threads.
+ */
+int detect_thread_count() {
+    const unsigned int hw = std::thread::hardware_concurrency();
+    const unsigned int half = hw == 0 ? 4u : hw / 2u;
+    return static_cast<int>(std::clamp(half, 2u, 6u));
+}
 
 struct AvenModel {
     llama_model * model = nullptr;
@@ -53,7 +93,7 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeLoad(JNIEnv * env, jobject /*thi
         return 0;
     }
 
-    llama_backend_init();
+    init_backend_once();
 
     llama_model_params model_params = llama_model_default_params();
     llama_model * model = llama_model_load_from_file(path_c, model_params);
@@ -63,11 +103,13 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeLoad(JNIEnv * env, jobject /*thi
         return 0;
     }
 
+    const int n_threads = detect_thread_count();
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = 2048;
     ctx_params.n_batch = 512;
-    ctx_params.n_threads = 4;
-    ctx_params.n_threads_batch = 4;
+    ctx_params.n_threads = n_threads;
+    ctx_params.n_threads_batch = n_threads;
+    ctx_params.no_perf = true; // Mobile-friendly: disable sampling performance timers
 
     llama_context * ctx = llama_init_from_model(model, ctx_params);
     if (ctx == nullptr) {
@@ -77,8 +119,16 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeLoad(JNIEnv * env, jobject /*thi
     }
 
     llama_sampler_chain_params sampler_params = llama_sampler_chain_default_params();
+    sampler_params.no_perf = true;
     llama_sampler * sampler = llama_sampler_chain_init(sampler_params);
-    llama_sampler_chain_add(sampler, llama_sampler_init_greedy());
+    // Pure greedy rambles and loops on small models; light sampling gives
+    // shorter, more natural replies.
+    llama_sampler_chain_add(sampler, llama_sampler_init_penalties(
+            llama_vocab_n_tokens(llama_model_get_vocab(model)), 64, 1.1f, 0.0f, 0.0f));
+    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.7f));
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9f, 1));
+    llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05f, 1));
+    llama_sampler_chain_add(sampler, llama_sampler_init_dist((uint32_t) time(nullptr)));
 
     AvenModel * handle = new AvenModel();
     handle->model = model;
@@ -132,7 +182,9 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerate(JNIEnv * env, jobject /
     const llama_token eot = llama_vocab_eot(vocab);
 
     std::vector<llama_token> tokens(llama_vocab_n_tokens(vocab));
-    const int32_t n_prompt = llama_tokenize(vocab, prompt_c, -1, tokens.data(), tokens.size(), true, false);
+    // The vendored llama.cpp has no "-1 means strlen" convention; passing -1
+    // builds std::string(text, SIZE_MAX) and throws std::length_error.
+    const int32_t n_prompt = llama_tokenize(vocab, prompt_c, (int32_t) strlen(prompt_c), tokens.data(), tokens.size(), true, false);
     env->ReleaseStringUTFChars(prompt, prompt_c);
     if (n_prompt < 0) {
         throw_java(env, "Failed to tokenize the prompt");
@@ -140,17 +192,35 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerate(JNIEnv * env, jobject /
     }
     tokens.resize(n_prompt);
 
-    g_stop.store(false);
-
-    llama_batch batch = llama_batch_get_one(tokens.data(), tokens.size());
-    batch.logits[batch.n_tokens - 1] = 1;
-    if (llama_decode(aven->ctx, batch) != 0) {
-        throw_java(env, "Failed to process the prompt");
+    const int32_t n_ctx = llama_n_ctx(aven->ctx);
+    if (n_prompt >= n_ctx - 1) {
+        throw_java(env, "The message is too long for the on-device context window");
         return nullptr;
     }
 
+    g_stop.store(false);
+
+    // Stateless sessions: each request starts from KV position 0. The
+    // conversation history arrives as prompt text, so nothing is lost;
+    // without this, positions accumulate across sends until the context
+    // fills up and llama_decode aborts on a later message.
+    llama_memory_clear(llama_get_memory(aven->ctx), true);
+
+    // decode() hard-aborts when a single call carries more than n_batch
+    // tokens, so feed the prompt in n_batch-sized slices; positions advance
+    // automatically across calls.
+    constexpr int32_t DECODE_CHUNK = 512;  // keep <= ctx_params.n_batch
+    for (int32_t done = 0; done < n_prompt && !g_stop.load(); done += DECODE_CHUNK) {
+        const int32_t take = std::min(DECODE_CHUNK, n_prompt - done);
+        llama_batch chunk = llama_batch_get_one(tokens.data() + done, take);
+        if (llama_decode(aven->ctx, chunk) != 0) {
+            throw_java(env, "Failed to process the message");
+            return nullptr;
+        }
+    }
+
     std::string output;
-    for (int step = 0; step < MAX_TOKENS; ++step) {
+    for (int step = 0; step < MAX_TOKENS && n_prompt + step < n_ctx - 1; ++step) {
         if (g_stop.load()) {
             break;
         }
@@ -165,21 +235,47 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerate(JNIEnv * env, jobject /
         if (n_piece < 0) {
             break;
         }
+
+        // CRITICAL FIX: Ensure null-termination before creating Java string
+        if (n_piece < (int)sizeof(piece_buf)) {
+            piece_buf[n_piece] = '\0';
+        } else {
+            piece_buf[sizeof(piece_buf) - 1] = '\0';
+        }
+
         output.append(piece_buf, n_piece);
 
         if (listener != nullptr && g_listener_on_token != nullptr) {
             jstring piece = env->NewStringUTF(piece_buf);
+            if (env->ExceptionCheck()) {
+                // NewStringUTF failed (e.g. OOM). Clearing here keeps the JVM
+                // from aborting on the next JNI call; generation stops.
+                env->ExceptionClear();
+                break;
+            }
             env->CallVoidMethod(listener, g_listener_on_token, piece);
             env->DeleteLocalRef(piece);
+            if (env->ExceptionCheck()) {
+                // The Kotlin collector threw inside the callback (typically a
+                // cancellation when the user stops generation). Continuing to
+                // call JNI with a pending exception is a fatal runtime abort,
+                // so stop cleanly instead.
+                env->ExceptionClear();
+                break;
+            }
         }
 
         llama_token one = token;
         llama_batch one_batch = llama_batch_get_one(&one, 1);
-        one_batch.logits[0] = 1;
         if (llama_decode(aven->ctx, one_batch) != 0) {
             break;
         }
     }
 
+    // Never return from JNI with a pending exception — that aborts the
+    // process. The Kotlin layer surfaces an empty/failed stream instead.
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
     return env->NewStringUTF(output.c_str());
 }

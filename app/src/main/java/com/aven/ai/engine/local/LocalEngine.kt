@@ -11,6 +11,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -30,6 +32,13 @@ class LocalEngine internal constructor(
 
     fun isLoaded(): Boolean = handle != null
 
+    /**
+     * One llama_context, one sampler, one thread at a time. Concurrent
+     * decodes on the same native state corrupt the heap (random ggml-kernel
+     * SIGSEGVs); overlapping callers queue here instead.
+     */
+    private val inferenceMutex = Mutex()
+
     override fun generate(request: GenerateRequest): Flow<String> = callbackFlow {
         val generationScope: CoroutineScope = this
         val listener = LlamaTokenListener { piece ->
@@ -38,14 +47,18 @@ class LocalEngine internal constructor(
         }
         val fullText = try {
             withContext(Dispatchers.Default) {
-                LlamaNative.nativeGenerate(loadedHandle, buildPrompt(request), listener)
+                inferenceMutex.withLock {
+                    LlamaNative.nativeGenerate(loadedHandle, buildPrompt(request), listener)
+                }
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
-            throw AiChatException("On-device generation failed: ${e.message}")
+        } catch (e: Throwable) {
+            // Catch Throwable, not Exception: native-layer failures surface
+            // as UnsatisfiedLinkError/OutOfMemoryError and must become a
+            // user-presentable error instead of killing the process.
+            throw AiChatException("On-device generation failed: ${e.message ?: e::class.java.simpleName}")
         }
-        if (!fullText.isNullOrBlank()) trySend(fullText)
         close()
         awaitClose { LlamaNative.nativeCancel() }
     }
@@ -106,7 +119,9 @@ class LocalEngine internal constructor(
         fun load(path: String): LocalEngine? {
             val handle = try {
                 LlamaNative.nativeLoad(path)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // UnsatisfiedLinkError and friends are Errors, not Exceptions;
+                // letting them escape here would crash at app startup.
                 return null
             }
             return if (handle == 0L) null else LocalEngine(handle)

@@ -16,7 +16,7 @@ import com.aven.ai.ui.navigation.Destinations
 import kotlinx.coroutines.launch
 
 /** Cap on how many recent chats the drawer lists (pinned are always all shown). */
-private const val MAX_RECENT_CHATS = 20
+private const val MAX_RECENT_CHATS = 50
 
 /**
  * Aven application root: owns the navigation controller and the drawer state,

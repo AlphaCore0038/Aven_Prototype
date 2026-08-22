@@ -27,12 +27,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +68,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -107,11 +112,12 @@ fun ChatScreen(
     }
 
     // Follow the conversation: scroll to the newest message while generating
-    // and when new history loads.
+    // and when new history loads. Instant jump per update - animating here
+    // gets cancelled by the next token before it ever completes.
     val itemCount = state.messages.size + if (state.isGenerating) 1 else 0
     LaunchedEffect(itemCount, state.streamingText.length) {
         if (itemCount > 0) {
-            listState.animateScrollToItem(itemCount - 1)
+            listState.scrollToItem(itemCount - 1)
         }
     }
 
@@ -134,7 +140,8 @@ fun ChatScreen(
         ChatTopBar(
             isPrivate = isPrivate,
             onOpenDrawer = onOpenDrawer,
-            onTogglePrivate = onTogglePrivate
+            onTogglePrivate = onTogglePrivate,
+            hasMessages = state.hasMessages
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -213,6 +220,11 @@ fun ChatScreen(
                 modelSheetOpen = false
             },
             onInstallLocalModel = viewModel::installLocalModel,
+            onCancelLocalModelDownload = viewModel::cancelLocalModelDownload,
+            onRemoveLocalModel = {
+                modelSheetOpen = false
+                viewModel.removeLocalModel()
+            },
             onDismiss = { modelSheetOpen = false }
         )
     }
@@ -234,6 +246,8 @@ private fun ModelSelectionSheet(
     localModelState: LocalModelState,
     onPick: (AiModelOption) -> Unit,
     onInstallLocalModel: () -> Unit,
+    onCancelLocalModelDownload: () -> Unit,
+    onRemoveLocalModel: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -285,14 +299,19 @@ private fun ModelSelectionSheet(
                         option.modelId == current?.modelId,
                     localModelState = localModelState,
                     onClick = {
+                        // Button-only interaction for the offline model until
+                        // it is installed; the row itself selects once Ready.
                         if (option.kind == EngineKind.LOCAL &&
                             localModelState !is LocalModelState.Ready
                         ) {
-                            onInstallLocalModel()
+                            // no-op
                         } else {
                             onPick(option)
                         }
-                    }
+                    },
+                    onInstallLocal = onInstallLocalModel,
+                    onCancelLocalDownload = onCancelLocalModelDownload,
+                    onRemoveLocal = onRemoveLocalModel
                 )
             }
         }
@@ -304,8 +323,14 @@ private fun ModelOptionRow(
     option: AiModelOption,
     isCurrent: Boolean,
     localModelState: LocalModelState,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onInstallLocal: () -> Unit,
+    onCancelLocalDownload: () -> Unit,
+    onRemoveLocal: () -> Unit
 ) {
+    val isLocal = option.kind == EngineKind.LOCAL
+    var confirmRemove by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -315,16 +340,116 @@ private fun ModelOptionRow(
             .fillMaxWidth()
             .padding(vertical = 6.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Text(
-                text = option.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+        Column(modifier = Modifier.padding(start = 16.dp, top = 14.dp, end = 8.dp, bottom = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = option.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (isLocal) localModelDescription(localModelState) else option.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (localModelState is LocalModelState.Failed) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (isLocal) {
+                    LocalModelStateAction(
+                        state = localModelState,
+                        onInstall = onInstallLocal,
+                        onCancel = onCancelLocalDownload,
+                        onRemoveRequest = { confirmRemove = true }
+                    )
+                }
+            }
+            val downloading = localModelState as? LocalModelState.Downloading
+            if (isLocal && downloading != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { downloading.progress },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text("Delete offline model?") },
+            text = {
+                Text(
+                    "This removes the Llama 3.2 1B files (~0.8 GB). " +
+                        "You can download it again anytime."
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) { Text("Cancel") }
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmRemove = false; onRemoveLocal() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
+    }
+}
+
+/** State-aware trailing control + description for the offline model row. */
+private fun localModelDescription(state: LocalModelState): String = when (state) {
+    LocalModelState.NotInstalled -> "~0.8 GB · tap ⬇ to download"
+    is LocalModelState.Downloading -> "Downloading… ${(state.progress * 100).toInt()}%"
+    is LocalModelState.Failed -> state.message
+    LocalModelState.Loading -> "Preparing model…"
+    LocalModelState.Ready -> "Ready — runs offline"
+}
+
+@Composable
+private fun LocalModelStateAction(
+    state: LocalModelState,
+    onInstall: () -> Unit,
+    onCancel: () -> Unit,
+    onRemoveRequest: () -> Unit
+) {
+    when (state) {
+        LocalModelState.Ready -> Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Offline model installed",
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(22.dp)
             )
-            Text(
-                text = option.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            IconButton(onClick = onRemoveRequest) {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = "Remove offline model",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        is LocalModelState.Downloading -> IconButton(onClick = onCancel) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Cancel download",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        LocalModelState.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        else -> IconButton(onClick = onInstall) {
+            Icon(
+                imageVector = Icons.Default.Download,
+                contentDescription = "Download model (~0.8 GB)",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -334,7 +459,8 @@ private fun ModelOptionRow(
 private fun ChatTopBar(
     isPrivate: Boolean,
     onOpenDrawer: () -> Unit,
-    onTogglePrivate: () -> Unit
+    onTogglePrivate: () -> Unit,
+    hasMessages: Boolean
 ) {
     Box(
         modifier = Modifier
@@ -358,22 +484,24 @@ private fun ChatTopBar(
             )
         }
 
-        IconButton(
-            onClick = onTogglePrivate,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(48.dp)
-                .border(2.dp, Color.White, CircleShape)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.private_chat_icon),
-                contentDescription = "Toggle Private Mode",
-                colorFilter = ColorFilter.tint(
-                    if (isPrivate) Color(0xFF4CAF50) else Color.White,
-                    blendMode = BlendMode.Multiply
-                ),
-                modifier = Modifier.size(32.dp)
-            )
+        if (!hasMessages) {
+            IconButton(
+                onClick = onTogglePrivate,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(48.dp)
+                    .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.private_chat_icon),
+                    contentDescription = "Toggle Private Mode",
+                    colorFilter = ColorFilter.tint(
+                        if (isPrivate) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface,
+                        blendMode = BlendMode.Multiply
+                    ),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
     }
 }

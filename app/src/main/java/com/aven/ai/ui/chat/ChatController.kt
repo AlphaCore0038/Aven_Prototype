@@ -6,6 +6,7 @@ import com.aven.ai.data.local.MessageEntity
 import com.aven.ai.engine.AiChatEngine
 import com.aven.ai.engine.AiChatException
 import com.aven.ai.engine.GenerateRequest
+import com.aven.ai.engine.local.LocalEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -112,7 +113,6 @@ class ChatController(
 
         val prompt = trimmed
         val now = System.currentTimeMillis()
-        val wasNewConversation = conversationId == 0L
 
         scope.launch {
             try {
@@ -120,7 +120,14 @@ class ChatController(
                 val providerId = engine.id.substringBefore("/")
                 val modelId = engine.id.substringAfter("/")
 
-                val targetConversationId = if (conversationId == 0L) {
+                // The saved conversation may have been wiped (e.g. "Clear Chat
+                // history" while its screen is open); fall through to creating
+                // a fresh one instead of writing into a dead foreign key.
+                val existingConversation =
+                    if (conversationId != 0L) chatDao.getConversation(conversationId) else null
+                val isNewConversation = conversationId == 0L || existingConversation == null
+
+                val targetConversationId = if (isNewConversation) {
                     chatDao.createConversationWithFirstMessage(
                         conversation = ConversationEntity(
                             title = prompt.take(MAX_TITLE_LENGTH),
@@ -134,19 +141,18 @@ class ChatController(
                     )
                 } else {
                     chatDao.upsertMessage(promptMessage(conversationId, prompt, now))
-                    val existing = chatDao.getConversation(conversationId)
                     chatDao.updateConversation(
                         id = conversationId,
-                        title = existing?.title ?: prompt.take(MAX_TITLE_LENGTH),
-                        isPinned = existing?.isPinned ?: false,
-                        providerId = existing?.providerId ?: providerId,
-                        modelId = existing?.modelId ?: modelId,
+                        title = existingConversation.title,
+                        isPinned = existingConversation.isPinned,
+                        providerId = existingConversation.providerId,
+                        modelId = existingConversation.modelId,
                         lastMessageAt = now
                     )
                     conversationId
                 }
 
-                if (conversationId == 0L && targetConversationId != 0L) {
+                if (isNewConversation && targetConversationId != 0L) {
                     conversationId = targetConversationId
                     observe(targetConversationId)
                 }
@@ -175,7 +181,12 @@ class ChatController(
                                 assistantMessage(targetConversationId, finalText, System.currentTimeMillis())
                             )
                         }
-                        if (wasNewConversation && finalText.isNotBlank()) {
+                        // The local engine is serialized behind one mutex;
+                        // a queued title job would stall the user's next
+                        // message, so offline chats keep their raw titles.
+                        if (isNewConversation && finalText.isNotBlank() &&
+                            providerId != LocalEngine.PROVIDER_ID
+                        ) {
                             generateAndStoreTitle(targetConversationId, prompt, finalText)
                         }
                     } catch (e: CancellationException) {

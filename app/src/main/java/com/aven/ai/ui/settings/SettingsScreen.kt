@@ -19,12 +19,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.aven.ai.data.local.ChatDao
 import com.aven.ai.data.settings.SettingsRepository
 import kotlinx.coroutines.launch
 
@@ -46,12 +49,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     settingsRepository: SettingsRepository,
+    chatDao: ChatDao,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenApiKeys: () -> Unit,
     onOpenUserDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
+    var confirmClearHistory by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -86,8 +92,32 @@ fun SettingsScreen(
         }
         SettingsRow("User details", onClick = onOpenUserDetails)
         SettingsRow("API keys", onClick = onOpenApiKeys)
-        SettingsRow("Clear Chat history")
+        SettingsRow("Clear Chat history", onClick = { confirmClearHistory = true })
         SettingsRow("About Aven", onClick = onOpenAbout)
+    }
+
+    if (confirmClearHistory) {
+        AlertDialog(
+            onDismissRequest = { confirmClearHistory = false },
+            title = { Text("Clear chat history?") },
+            text = {
+                Text("All conversations and their messages — private chats included — " +
+                    "will be permanently deleted.")
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClearHistory = false }) { Text("Cancel") }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch { chatDao.deleteAllConversations() }
+                        confirmClearHistory = false
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
     }
 }
 

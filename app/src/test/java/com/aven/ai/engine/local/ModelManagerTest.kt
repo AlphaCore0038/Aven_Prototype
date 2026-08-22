@@ -89,34 +89,56 @@ class ModelManagerTest {
     }
 
     @Test
-    fun `existing file loads immediately without downloading`() = runTest {
+    fun `existing file loads without downloading`() = runTest {
         modelFile().parentFile?.mkdirs()
         modelFile().writeText("dummy")
         val downloader = FakeDownloader(fail = true)
         val manager = ModelManager({ modelFile() }, downloader, this, ::fakeEngine)
 
-        assertEquals(LocalModelState.Ready, manager.state.value)
+        // A file on disk means Loading until the native load finishes —
+        // never a silent Ready.
+        assertEquals(LocalModelState.Loading, manager.state.value)
 
         manager.install()
         testScheduler.advanceUntilIdle()
 
         assertEquals(LocalModelState.Ready, manager.state.value)
         assertNotNull(manager.engine())
+        assertTrue(downloader.progressCalls.isEmpty())
     }
 
     @Test
-    fun `unloadable model file is rejected and deleted`() = runTest {
+    fun `unloadable model file fails but is kept for retry`() = runTest {
         modelFile().parentFile?.mkdirs()
         modelFile().writeText("dummy")
         val manager = ModelManager(
             { modelFile() }, FakeDownloader(), this, { null }
         )
-
-        assertEquals(LocalModelState.Ready, manager.state.value)
-        manager.install()
         testScheduler.advanceUntilIdle()
 
         assertTrue(manager.state.value is LocalModelState.Failed)
+        assertNull(manager.engine())
+        // The 800 MB download survives a failed load; the user retries
+        // verification instead of re-downloading.
+        assertTrue(modelFile().exists())
+
+        manager.install()
+        testScheduler.advanceUntilIdle()
+        assertTrue(manager.state.value is LocalModelState.Failed)
+        assertTrue(modelFile().exists())
+    }
+
+    @Test
+    fun `remove during startup load lands in not installed`() = runTest {
+        modelFile().parentFile?.mkdirs()
+        modelFile().writeText("dummy")
+        val manager = ModelManager({ modelFile() }, FakeDownloader(), this, ::fakeEngine)
+
+        assertEquals(LocalModelState.Loading, manager.state.value)
+        manager.remove()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(LocalModelState.NotInstalled, manager.state.value)
         assertNull(manager.engine())
         assertTrue(!modelFile().exists())
     }

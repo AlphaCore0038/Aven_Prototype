@@ -50,6 +50,10 @@ interface ChatDao {
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun deleteConversation(id: Long)
 
+    /** Wipes every conversation (private included); messages cascade. */
+    @Query("DELETE FROM conversations")
+    suspend fun deleteAllConversations()
+
     // ---- messages ----
 
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY createdAt ASC, id ASC")

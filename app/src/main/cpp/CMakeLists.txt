@@ -7,4 +7,5 @@ add_subdirectory(llama.cpp)
 
 add_library(aven_llama SHARED aven_llama.cpp)
 target_include_directories(aven_llama PRIVATE llama.cpp/include)
-target_link_libraries(aven_llama PRIVATE llama)
+find_library(android_log_lib log)
+target_link_libraries(aven_llama PRIVATE llama ${android_log_lib})

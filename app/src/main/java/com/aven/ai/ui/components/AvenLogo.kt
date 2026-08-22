@@ -14,25 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.aven.ai.R
 
 /**
- * The horizontal Aven wordmark/logo (logo_new.png).
- * Used in the top bar, drawer header, splash, and about screens.
- */
-@Composable
-fun AvenFullLogo(
-    modifier: Modifier = Modifier,
-    height: Dp = 28.dp
-) {
-    Image(
-        painter = painterResource(R.drawable.logo_new),
-        contentDescription = "Aven",
-        modifier = modifier.size(width = Dp.Unspecified, height = height),
-        contentScale = ContentScale.Fit
-    )
-}
-
-/**
- * The square Aven monogram (logo mark). Used for the welcome state and the
- * model loading state.
+ * The square Aven monogram ("A" mark, logo_monogram_a.webp). Used for the
+ * welcome state and the about screen.
  */
 @Composable
 fun AvenMonogram(
@@ -41,7 +24,7 @@ fun AvenMonogram(
 ) {
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Image(
-            painter = painterResource(R.drawable.logo_new),
+            painter = painterResource(R.drawable.logo_monogram_a),
             contentDescription = "Aven",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit

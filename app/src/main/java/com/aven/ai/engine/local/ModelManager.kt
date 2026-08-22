@@ -2,6 +2,7 @@ package com.aven.ai.engine.local
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,6 +12,7 @@ import java.io.File
 
 sealed interface LocalModelState {
     data object NotInstalled : LocalModelState
+    data object Loading : LocalModelState
     data class Downloading(val progress: Float) : LocalModelState
     data object Ready : LocalModelState
     data class Failed(val message: String) : LocalModelState
@@ -20,6 +22,9 @@ sealed interface LocalModelState {
  * Owns the lifecycle of the on-device model file: install (download), verify
  * (native load), ready, and remove. The engine instance is created only after
  * the model file has been verified, so [engine] is never a broken stub.
+ *
+ * A file that exists on disk is [LocalModelState.Loading] until the native
+ * load succeeds — never silently [LocalModelState.Ready].
  */
 class ModelManager(
     private val modelFile: () -> File,
@@ -28,25 +33,41 @@ class ModelManager(
     private val modelLoader: (String) -> LocalEngine?
 ) {
 
-    private val _state = MutableStateFlow<LocalModelState>(
-        if (modelFile().isFile) LocalModelState.Ready else LocalModelState.NotInstalled
-    )
+    private val _state = MutableStateFlow<LocalModelState>(LocalModelState.NotInstalled)
     val state: StateFlow<LocalModelState> = _state.asStateFlow()
 
     private var downloadJob: Job? = null
+    private var loadJob: Job? = null
     private var engine: LocalEngine? = null
 
-    fun install() {
-        if (_state.value is LocalModelState.Downloading) return
+    init {
         if (modelFile().isFile) {
-            verifyAndReady()
+            _state.value = LocalModelState.Loading
+            // Load the engine instance on a background thread so we don't block
+            // the lazy initialization of the container.
+            loadJob = scope.launch {
+                verifyAndReady()
+            }
+        }
+    }
+
+    fun install() {
+        if (_state.value is LocalModelState.Downloading || _state.value is LocalModelState.Loading) return
+        if (modelFile().isFile) {
+            loadJob = scope.launch { verifyAndReady() }
             return
         }
+        var lastEmitted = -1f
         downloadJob = scope.launch {
             _state.update { LocalModelState.Downloading(0f) }
             try {
                 downloader.download(LocalEngine.GGUF_URL, modelFile()) { progress ->
-                    _state.update { LocalModelState.Downloading(progress) }
+                    // Throttle emissions: the downloader reports per-chunk and a
+                    // recomposition per 8 KB would hammer the UI thread.
+                    if (progress - lastEmitted >= PROGRESS_STEP || progress >= 1f) {
+                        lastEmitted = progress
+                        _state.update { LocalModelState.Downloading(progress) }
+                    }
                 }
                 verifyAndReady()
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -69,23 +90,40 @@ class ModelManager(
 
     fun remove() {
         cancelDownload()
+        loadJob?.cancel()
+        loadJob = null
         LocalEngine.unload(engine)
         engine = null
         modelFile().delete()
         _state.value = LocalModelState.NotInstalled
     }
 
-    private fun verifyAndReady() {
+    /**
+     * Loads the model file natively and transitions to Ready/Failed. Runs
+     * inside its own job ([loadJob]) so a concurrent [remove] cancels it and
+     * can never observe a resurrected Ready state afterwards.
+     */
+    private fun CoroutineScope.verifyAndReady() {
         LocalEngine.unload(engine)
+        engine = null
+        _state.value = LocalModelState.Loading
         val loaded = modelLoader(modelFile().absolutePath)
+        ensureActive()
         if (loaded == null) {
-            modelFile().delete()
+            // Keep the downloaded file: a load failure can be transient (low
+            // memory, cold start). install() retries verification without a
+            // new 800 MB download.
             _state.value = LocalModelState.Failed(
-                "The downloaded model file could not be loaded. Please try installing again."
+                "The local model could not be loaded on this device. Tap retry to try again."
             )
             return
         }
         engine = loaded
         _state.value = LocalModelState.Ready
+    }
+
+    private companion object {
+        /** Minimum progress delta between two UI-facing emissions. */
+        const val PROGRESS_STEP = 0.005f
     }
 }

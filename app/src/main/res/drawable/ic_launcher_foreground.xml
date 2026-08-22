@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foreground: the Aven "A" mark drawn inside the 108dp canvas
+     with 26dp insets so the visible (~72dp) launcher mask never crops it. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:left="26dp"
+        android:top="26dp"
+        android:right="26dp"
+        android:bottom="26dp">
+        <bitmap
+            android:src="@drawable/logo_monogram_a"
+            android:gravity="fill" />
+    </item>
+</layer-list>

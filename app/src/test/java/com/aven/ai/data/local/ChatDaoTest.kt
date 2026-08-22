@@ -144,4 +144,25 @@ class ChatDaoTest {
         assertEquals("New title", updated.title)
         assertTrue(updated.isPinned)
     }
+
+    @Test
+    fun `deleteAllConversations wipes private and visible chats with their messages`() = runTest {
+        val visibleId = dao.createConversationWithFirstMessage(
+            conversation(title = "Visible", lastMessageAt = 100L),
+            message(0, "user", "hello", 100L)
+        )
+        val privateId = dao.createConversationWithFirstMessage(
+            conversation(title = "Secret", isPrivate = true, lastMessageAt = 200L),
+            message(0, "user", "hidden", 200L)
+        )
+        dao.upsertMessage(message(visibleId, "assistant", "reply", 150L))
+
+        dao.deleteAllConversations()
+
+        assertEquals(0, dao.visibleConversationCount())
+        assertNull(dao.getConversation(visibleId))
+        assertNull(dao.getConversation(privateId))
+        assertTrue(dao.getMessages(visibleId).isEmpty())
+        assertTrue(dao.getMessages(privateId).isEmpty())
+    }
 }

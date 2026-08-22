@@ -9,7 +9,7 @@
 
     <style name="Theme.Aven.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/aven_surface</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_monogram_a</item>
         <item name="postSplashScreenTheme">@style/Theme.Aven</item>
     </style>
 </resources>
