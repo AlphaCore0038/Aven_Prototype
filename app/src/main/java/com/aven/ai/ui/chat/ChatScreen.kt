@@ -55,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Alignment
@@ -77,6 +78,7 @@ import com.aven.ai.engine.AiModelOption
 import com.aven.ai.engine.EngineKind
 import com.aven.ai.engine.local.LocalModelState
 import com.aven.ai.ui.components.MessageComposer
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 /**
@@ -107,18 +109,32 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    var autoFollow by remember { mutableStateOf(true) }
+
     LaunchedEffect(conversationId, isPrivate) {
+        autoFollow = true
         controller.start(conversationId, isPrivate)
     }
 
-    // Follow the conversation: scroll to the newest message while generating
-    // and when new history loads. Instant jump per update - animating here
-    // gets cancelled by the next token before it ever completes.
+    // Snapshot-aware: canScrollForward is derived from layoutInfo, so it
+    // must be observed via snapshotFlow, not as a LaunchedEffect key.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress to listState.canScrollForward }
+            .collect { (dragging, canForward) ->
+                if (dragging && canForward) autoFollow = false
+                else if (!canForward) autoFollow = true
+            }
+    }
+
     val itemCount = state.messages.size + if (state.isGenerating) 1 else 0
     LaunchedEffect(itemCount, state.streamingText.length) {
-        if (itemCount > 0) {
-            listState.scrollToItem(itemCount - 1)
-        }
+        val target = itemCount - 1
+        if (target <= 0) return@LaunchedEffect
+        if (!autoFollow || listState.isScrollInProgress) return@LaunchedEffect
+        // Viewport check: only follow when already at bottom. A single-item
+        // list (new chat, only streaming) has no scroll, so skip.
+        if (listState.canScrollForward) return@LaunchedEffect
+        listState.scrollToItem(target)
     }
 
     val currentModelLabel = remember(settings, localModelState) {

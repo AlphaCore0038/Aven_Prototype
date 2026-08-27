@@ -23,5 +23,9 @@ data class MessageEntity(
     val role: String,
     val content: String,
     val modelId: String? = null,
-    val createdAt: Long
+    val createdAt: Long,
+    val promptTokens: Int? = null,
+    val completionTokens: Int? = null,
+    val tokensPerSecond: Float? = null,
+    val timeToFirstTokenMs: Long? = null
 )

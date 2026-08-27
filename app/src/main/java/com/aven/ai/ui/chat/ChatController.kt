@@ -51,7 +51,11 @@ data class UiMessage(
     val role: MessageRole,
     val content: String,
     val isError: Boolean = false,
-    val createdAt: Long
+    val createdAt: Long,
+    val tokensPerSecond: Float? = null,
+    val timeToFirstTokenMs: Long? = null,
+    val promptTokens: Int? = null,
+    val completionTokens: Int? = null
 )
 
 data class ChatUiState(
@@ -163,6 +167,9 @@ class ChatController(
                 }
 
                 generationJob = scope.launch {
+                    var ttftMs: Long? = null
+                    val t0 = System.nanoTime()
+                    var firstDelta = true
                     try {
                         engine.generate(
                             GenerateRequest(
@@ -172,13 +179,29 @@ class ChatController(
                                 isPrivate = _uiState.value.isPrivate
                             )
                         ).collect { delta ->
+                            if (firstDelta) {
+                                ttftMs = (System.nanoTime() - t0) / 1_000_000
+                                firstDelta = false
+                            }
                             _uiState.update { it.copy(streamingText = it.streamingText + delta) }
                         }
 
                         val finalText = _uiState.value.streamingText
                         if (finalText.isNotBlank()) {
+                            val totalMs = (System.nanoTime() - t0) / 1_000_000
+                            // Fallback token estimate: ~4 chars per token if native/usage not available.
+                            val estTokens = (finalText.length / 4).coerceAtLeast(1)
+                            val tps = if (totalMs > 0) (estTokens * 1000f / totalMs) else null
+                            val msPerTok = if (tps != null && tps > 0) (1000f / tps) else null
+                            // Store tps/msTok will be formatted as single line; keep tps for footer.
                             chatDao.upsertMessage(
-                                assistantMessage(targetConversationId, finalText, System.currentTimeMillis())
+                                assistantMessage(
+                                    targetConversationId, finalText, System.currentTimeMillis(),
+                                    tokensPerSecond = tps,
+                                    timeToFirstTokenMs = ttftMs,
+                                    promptTokens = null,
+                                    completionTokens = estTokens
+                                )
                             )
                         }
                         // The local engine is serialized behind one mutex;
@@ -278,11 +301,21 @@ class ChatController(
         createdAt = at
     )
 
-    private fun assistantMessage(conversationId: Long, text: String, at: Long) = MessageEntity(
+    private fun assistantMessage(
+        conversationId: Long, text: String, at: Long,
+        tokensPerSecond: Float? = null,
+        timeToFirstTokenMs: Long? = null,
+        promptTokens: Int? = null,
+        completionTokens: Int? = null
+    ) = MessageEntity(
         conversationId = conversationId,
         role = "assistant",
         content = text,
-        createdAt = at
+        createdAt = at,
+        tokensPerSecond = tokensPerSecond,
+        timeToFirstTokenMs = timeToFirstTokenMs,
+        promptTokens = promptTokens,
+        completionTokens = completionTokens
     )
 
     private fun MessageEntity.toUiMessage() = UiMessage(
@@ -290,7 +323,11 @@ class ChatController(
         conversationId = conversationId,
         role = if (role == "user") MessageRole.USER else MessageRole.ASSISTANT,
         content = content,
-        createdAt = createdAt
+        createdAt = createdAt,
+        tokensPerSecond = tokensPerSecond,
+        timeToFirstTokenMs = timeToFirstTokenMs,
+        promptTokens = promptTokens,
+        completionTokens = completionTokens
     )
 
     private companion object {

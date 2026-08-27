@@ -71,6 +71,17 @@ fun MessageRow(message: UiMessage, modifier: Modifier = Modifier) {
             if (!isUser) {
                 CopyAction(message.content)
             }
+            if (!isUser && message.tokensPerSecond != null && message.timeToFirstTokenMs != null) {
+                val msPerTok = if (message.tokensPerSecond > 0) 1000f / message.tokensPerSecond else 0f
+                Text(
+                    text = "⚡ %.1f tok/s • %.1f ms/tok • TTFT %dms".format(
+                        message.tokensPerSecond, msPerTok, message.timeToFirstTokenMs
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(top = 2.dp, start = 4.dp)
+                )
+            }
         }
     }
 }

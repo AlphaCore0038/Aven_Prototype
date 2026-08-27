@@ -94,12 +94,14 @@ class LocalEngine internal constructor(
         val window = messages.takeLast(MAX_HISTORY_MESSAGES)
         val result = mutableListOf<MessageEntity>()
         var used = 0
-        for (message in window) {
+        // Walk newest-first so budget keeps the most recent context.
+        for (message in window.asReversed()) {
             val cost = message.content.length
             if (used + cost > MAX_HISTORY_CHARS) break
             result.add(message)
             used += cost
         }
+        result.reverse()
         return result
     }
 

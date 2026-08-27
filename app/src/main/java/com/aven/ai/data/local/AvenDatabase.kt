@@ -4,10 +4,21 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE messages ADD COLUMN promptTokens INTEGER")
+        db.execSQL("ALTER TABLE messages ADD COLUMN completionTokens INTEGER")
+        db.execSQL("ALTER TABLE messages ADD COLUMN tokensPerSecond REAL")
+        db.execSQL("ALTER TABLE messages ADD COLUMN timeToFirstTokenMs INTEGER")
+    }
+}
 
 @Database(
     entities = [ConversationEntity::class, MessageEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AvenDatabase : RoomDatabase() {
@@ -24,7 +35,7 @@ abstract class AvenDatabase : RoomDatabase() {
                     context.applicationContext,
                     AvenDatabase::class.java,
                     "aven.db"
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
     }
 }

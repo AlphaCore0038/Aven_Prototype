@@ -27,4 +27,13 @@ object DeltaExtractor {
         val root = json.parseToJsonElement(event).jsonObject
         root["error"]?.jsonObject?.get("message")?.jsonPrimitive?.contentOrNull
     }.getOrNull()
+
+    /** Usage from a chunk with `stream_options.include_usage`, or null when absent. */
+    fun extractUsage(event: String): Pair<Int, Int>? = runCatching {
+        val root = json.parseToJsonElement(event).jsonObject
+        val usage = root["usage"]?.jsonObject ?: return@runCatching null
+        val prompt = usage["prompt_tokens"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+        val completion = usage["completion_tokens"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+        if (prompt != null && completion != null) prompt to completion else null
+    }.getOrNull()
 }

@@ -106,7 +106,8 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeLoad(JNIEnv * env, jobject /*thi
     const int n_threads = detect_thread_count();
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = 2048;
-    ctx_params.n_batch = 512;
+    ctx_params.n_batch = 1024;
+    ctx_params.n_ubatch = 512;
     ctx_params.n_threads = n_threads;
     ctx_params.n_threads_batch = n_threads;
     ctx_params.no_perf = true; // Mobile-friendly: disable sampling performance timers

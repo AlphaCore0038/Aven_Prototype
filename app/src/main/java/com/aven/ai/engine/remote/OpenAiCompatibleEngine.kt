@@ -148,6 +148,7 @@ abstract class OpenAiCompatibleEngine(
         return buildJsonObject {
             put("model", modelId)
             put("stream", true)
+            put("stream_options", buildJsonObject { put("include_usage", true) })
             put(
                 "messages",
                 buildJsonArray {
@@ -164,12 +165,14 @@ abstract class OpenAiCompatibleEngine(
         val budget = MAX_HISTORY_CHARS
         val result = mutableListOf<com.aven.ai.data.local.MessageEntity>()
         var used = 0
-        for (message in window) {
+        // Keep newest messages first within the char budget.
+        for (message in window.asReversed()) {
             val cost = message.content.length
             if (used + cost > budget) break
             result.add(message)
             used += cost
         }
+        result.reverse()
         return result
     }
 
