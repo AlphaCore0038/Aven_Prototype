@@ -94,7 +94,7 @@ fun MessageComposer(
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest
     val inputTextStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Serif)
     val canSend = text.isNotBlank() && !isGenerating && enabled
-    val canType = enabled && !isGenerating
+    val canType = enabled
 
     Surface(
         modifier = modifier,

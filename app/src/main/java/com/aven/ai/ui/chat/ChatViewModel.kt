@@ -74,6 +74,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     fun removeLocalModel() = container.modelManager.remove()
 
     suspend fun selectModel(option: AiModelOption) {
+        if (controller.uiState.value.isGenerating) return
         settingsRepository.setDefaultProvider(option.providerId)
         settingsRepository.setDefaultModel(option.modelId)
     }

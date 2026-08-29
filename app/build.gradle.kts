@@ -8,7 +8,9 @@ plugins {
 }
 
 // ---------------------------------------------------------------------------
-// Aven development configuration, read from gitignored local.properties.
+// Aven development configuration.
+// - local.properties : Android SDK / machine config only (sdk.dir, bundle flag)
+// - .env             : API keys (single source, gitignored, never committed)
 // API key defaults are exposed ONLY to debug builds and are seeded into the
 // Android Keystore-backed secure store on first launch. They never appear in
 // release builds, source code, or version control.
@@ -17,12 +19,19 @@ val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
+val envProperties = Properties().apply {
+    val file = rootProject.file(".env")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
 
 fun String.safe() = replace("\\", "\\\\").replace("\"", "\\\"")
 
-val defaultZenKey: String = localProperties.getProperty("AVEN_DEFAULT_ZEN_API_KEY", "")
-val defaultOpenRouterKey: String = localProperties.getProperty("AVEN_DEFAULT_OPENROUTER_API_KEY", "")
-val defaultZaiKey: String = localProperties.getProperty("AVEN_DEFAULT_ZAI_API_KEY", "")
+val defaultZenKey: String = envProperties.getProperty("AVEN_DEFAULT_ZEN_API_KEY", "")
+val openRouterKey: String = envProperties.getProperty("OPENROUTER_API_KEY", "")
+val defaultOpenRouterKey: String = openRouterKey
+val defaultZaiKey: String = envProperties.getProperty("AVEN_DEFAULT_ZAI_API_KEY", "")
+val nimKey: String = envProperties.getProperty("NVIDIA_NIM_API_KEY", "")
+val defaultNimKey: String = nimKey
 val bundleModel: Boolean = localProperties.getProperty("AVEN_BUNDLE_MODEL", "false").toBoolean()
 
 android {
@@ -77,17 +86,23 @@ android {
 
     buildTypes {
         debug {
-            // Personal-debug-only default API keys (gitignored local.properties).
+            // Personal-debug-only default API keys (gitignored .env).
             // These are seeded into Keystore-backed secure storage on first run.
             buildConfigField("String", "DEFAULT_ZEN_API_KEY", "\"${defaultZenKey.safe()}\"")
             buildConfigField("String", "DEFAULT_OPENROUTER_API_KEY", "\"${defaultOpenRouterKey.safe()}\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"${openRouterKey.safe()}\"")
             buildConfigField("String", "DEFAULT_ZAI_API_KEY", "\"${defaultZaiKey.safe()}\"")
+            buildConfigField("String", "NVIDIA_NIM_API_KEY", "\"${nimKey.safe()}\"")
+            buildConfigField("String", "DEFAULT_NVIDIA_NIM_API_KEY", "\"${defaultNimKey.safe()}\"")
         }
         release {
             // Release builds NEVER carry API key defaults.
             buildConfigField("String", "DEFAULT_ZEN_API_KEY", "\"\"")
             buildConfigField("String", "DEFAULT_OPENROUTER_API_KEY", "\"\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"\"")
             buildConfigField("String", "DEFAULT_ZAI_API_KEY", "\"\"")
+            buildConfigField("String", "NVIDIA_NIM_API_KEY", "\"\"")
+            buildConfigField("String", "DEFAULT_NVIDIA_NIM_API_KEY", "\"\"")
             optimization {
                 enable = true
             }

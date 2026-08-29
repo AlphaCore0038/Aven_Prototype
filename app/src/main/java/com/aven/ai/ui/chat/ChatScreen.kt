@@ -204,7 +204,7 @@ fun ChatScreen(
                 text = ""
             },
             onStop = { controller.stop() },
-            onOpenModelSelection = { modelSheetOpen = true },
+            onOpenModelSelection = { if (!state.isGenerating) modelSheetOpen = true },
             onAddAction = { },
             focusRequester = focusRequester,
             modifier = Modifier
@@ -232,6 +232,7 @@ fun ChatScreen(
             },
             localModelState = localModelState,
             onPick = { option ->
+                if (state.isGenerating) return@ModelSelectionSheet
                 scope.launch { viewModel.selectModel(option) }
                 modelSheetOpen = false
             },

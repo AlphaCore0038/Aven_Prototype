@@ -4,10 +4,16 @@ import com.aven.ai.engine.AiChatEngine
 import com.aven.ai.engine.AiChatException
 import com.aven.ai.engine.GenerateRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -43,7 +49,11 @@ abstract class OpenAiCompatibleEngine(
     override fun generate(request: GenerateRequest): Flow<String> = flow {
         val key = apiKey()
             ?: throw AiChatException(
-                "No $providerName API key. Add it in Settings → API Keys."
+                when (providerName) {
+                    "OpenRouter" -> "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter an API key in Settings → API Keys."
+                    "NVIDIA NIM" -> "No NVIDIA NIM API key configured. Add NVIDIA_NIM_API_KEY to .env or enter an API key in Settings → API Keys."
+                    else -> "No $providerName API key. Add it in Settings → API Keys."
+                }
             )
 
         val httpRequest = Request.Builder()
@@ -57,8 +67,21 @@ abstract class OpenAiCompatibleEngine(
         var attempt = 0
         var disconnectAttempt = 0
         while (true) {
+            currentCoroutineContext().ensureActive()
+            val call = client.newCall(httpRequest)
             val response = try {
-                client.newCall(httpRequest).execute()
+                suspendCancellableCoroutine<okhttp3.Response> { cont ->
+                    cont.invokeOnCancellation { call.cancel() }
+                    try {
+                        cont.resume(call.execute())
+                    } catch (e: CancellationException) {
+                        cont.resumeWithException(e)
+                    } catch (e: IOException) {
+                        cont.resumeWithException(e)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
                 if (disconnectAttempt < maxDisconnectRetries) {
                     disconnectAttempt++
@@ -79,6 +102,7 @@ abstract class OpenAiCompatibleEngine(
                             ?: throw AiChatException("Empty response from $providerName.")
 
                         SseParser.parse(source) { event ->
+                            currentCoroutineContext().ensureActive()
                             if (event == DONE_EVENT) {
                                 sawDone = true
                                 return@parse
@@ -87,6 +111,7 @@ abstract class OpenAiCompatibleEngine(
                             if (error != null) throw AiChatException(error)
                             val delta = DeltaExtractor.extractContent(event)
                             if (!delta.isNullOrEmpty()) {
+                                currentCoroutineContext().ensureActive()
                                 emittedAny = true
                                 emit(delta)
                             }

@@ -58,9 +58,9 @@ fun MessageRow(message: UiMessage, modifier: Modifier = Modifier) {
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
         ) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (isUser) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                shape = if (isUser) UserBubbleShape else RoundedCornerShape(12.dp),
+                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
             ) {
                 Text(
                     text = message.content,

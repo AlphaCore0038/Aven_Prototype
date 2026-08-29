@@ -56,6 +56,7 @@ fun ApiKeysScreen(
     var zenKey by remember { mutableStateOf(keyManager.readKey(KeyManager.Provider.ZEN)) }
     var openRouterKey by remember { mutableStateOf(keyManager.readKey(KeyManager.Provider.OPENROUTER)) }
     var zaiKey by remember { mutableStateOf(keyManager.readKey(KeyManager.Provider.ZAI)) }
+    var nimKey by remember { mutableStateOf(keyManager.readKey(KeyManager.Provider.NVIDIA_NIM)) }
 
     Column(
         modifier = modifier
@@ -129,6 +130,19 @@ fun ApiKeysScreen(
             onClear = {
                 keyManager.clearKey(KeyManager.Provider.ZAI)
                 zaiKey = null
+            }
+        )
+
+        KeyProviderRow(
+            providerLabel = "NVIDIA NIM",
+            key = nimKey,
+            onKeyChanged = { newKey ->
+                keyManager.writeKey(KeyManager.Provider.NVIDIA_NIM, newKey)
+                nimKey = newKey
+            },
+            onClear = {
+                keyManager.clearKey(KeyManager.Provider.NVIDIA_NIM)
+                nimKey = null
             }
         )
 

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.SharedFlow
  * Keystore-held master key and persisted in private SharedPreferences.
  *
  * Debug builds seed their defaults from BuildConfig (sourced from the
- * gitignored local.properties) on first launch. Release builds never carry
+ * gitignored .env) on first launch. Release builds never carry
  * defaults, so seeding is a no-op there.
  */
 class KeyManager(context: Context) {
@@ -35,12 +35,18 @@ class KeyManager(context: Context) {
             writeKey(Provider.ZEN, BuildConfig.DEFAULT_ZEN_API_KEY)
             seededAny = true
         }
-        if (BuildConfig.DEBUG && BuildConfig.DEFAULT_OPENROUTER_API_KEY.isNotBlank() && !hasKey(Provider.OPENROUTER)) {
-            writeKey(Provider.OPENROUTER, BuildConfig.DEFAULT_OPENROUTER_API_KEY)
+        val openRouterSeed = BuildConfig.OPENROUTER_API_KEY.ifBlank { BuildConfig.DEFAULT_OPENROUTER_API_KEY }
+        if (BuildConfig.DEBUG && openRouterSeed.isNotBlank() && !hasKey(Provider.OPENROUTER)) {
+            writeKey(Provider.OPENROUTER, openRouterSeed)
             seededAny = true
         }
         if (BuildConfig.DEBUG && BuildConfig.DEFAULT_ZAI_API_KEY.isNotBlank() && !hasKey(Provider.ZAI)) {
             writeKey(Provider.ZAI, BuildConfig.DEFAULT_ZAI_API_KEY)
+            seededAny = true
+        }
+        val nimSeed = BuildConfig.NVIDIA_NIM_API_KEY.ifBlank { BuildConfig.DEFAULT_NVIDIA_NIM_API_KEY }
+        if (BuildConfig.DEBUG && nimSeed.isNotBlank() && !hasKey(Provider.NVIDIA_NIM)) {
+            writeKey(Provider.NVIDIA_NIM, nimSeed)
             seededAny = true
         }
 
@@ -72,7 +78,8 @@ class KeyManager(context: Context) {
     enum class Provider {
         ZEN,
         OPENROUTER,
-        ZAI
+        ZAI,
+        NVIDIA_NIM
     }
 
     private companion object {

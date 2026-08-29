@@ -5,6 +5,7 @@ import com.aven.ai.data.settings.SettingsRepository
 import com.aven.ai.engine.local.LocalEngine
 import com.aven.ai.engine.local.LocalModelState
 import com.aven.ai.engine.local.ModelManager
+import com.aven.ai.engine.remote.NimEngine
 import com.aven.ai.engine.remote.OpenRouterEngine
 import com.aven.ai.engine.remote.ZaiEngine
 import com.aven.ai.engine.remote.ZenEngine
@@ -43,37 +44,9 @@ class ModelRegistry(
         ),
         AiModelOption(
             providerId = ZenEngine.PROVIDER_ID,
-            modelId = "nemotron-3-ultra-free",
-            displayName = "Nemotron 3 Ultra",
-            description = "OpenCode Zen — NVIDIA reasoning, free",
-            kind = EngineKind.REMOTE
-        ),
-        AiModelOption(
-            providerId = ZenEngine.PROVIDER_ID,
             modelId = "big-pickle",
             displayName = "Big Pickle",
             description = "OpenCode Zen — free",
-            kind = EngineKind.REMOTE
-        ),
-        AiModelOption(
-            providerId = ZenEngine.PROVIDER_ID,
-            modelId = "hy3-free",
-            displayName = "Hy3",
-            description = "OpenCode Zen — free",
-            kind = EngineKind.REMOTE
-        ),
-        AiModelOption(
-            providerId = ZenEngine.PROVIDER_ID,
-            modelId = "muse-spark-1.2-contributor-free",
-            displayName = "Muse Spark",
-            description = "OpenCode Zen — contributor, free",
-            kind = EngineKind.REMOTE
-        ),
-        AiModelOption(
-            providerId = ZenEngine.PROVIDER_ID,
-            modelId = "x-preview-f-free",
-            displayName = "Ox Alpha",
-            description = "OpenCode Zen — preview, free",
             kind = EngineKind.REMOTE
         ),
         AiModelOption(
@@ -91,17 +64,45 @@ class ModelRegistry(
             kind = EngineKind.REMOTE
         ),
         AiModelOption(
-            providerId = OpenRouterEngine.PROVIDER_ID,
-            modelId = "openai/gpt-oss-20b:free",
-            displayName = "GPT-OSS 20B",
-            description = "OpenRouter — OpenAI open weights, free",
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "openai/gpt-oss-20b",
+            displayName = "GPT OSS 20B",
+            description = "NVIDIA NIM — OpenAI open weights",
             kind = EngineKind.REMOTE
         ),
         AiModelOption(
-            providerId = OpenRouterEngine.PROVIDER_ID,
-            modelId = "z-ai/glm-5.2:free",
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "openai/gpt-oss-120b",
+            displayName = "GPT OSS 120B",
+            description = "NVIDIA NIM — OpenAI open weights",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "moonshotai/kimi-k3",
+            displayName = "Kimi K3",
+            description = "NVIDIA NIM — Moonshot AI",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "deepseek-ai/deepseek-v4-pro-0813",
+            displayName = "V4 Pro",
+            description = "NVIDIA NIM — DeepSeek",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "deepseek-ai/deepseek-v4-flash-0731",
+            displayName = "V4 Flash",
+            description = "NVIDIA NIM — DeepSeek",
+            kind = EngineKind.REMOTE
+        ),
+        AiModelOption(
+            providerId = NimEngine.PROVIDER_ID,
+            modelId = "z-ai/glm-5.2",
             displayName = "GLM-5.2",
-            description = "OpenRouter — Zhipu, free",
+            description = "NVIDIA NIM — Z.AI",
             kind = EngineKind.REMOTE
         )
     )
@@ -117,6 +118,11 @@ class ModelRegistry(
         )
         OpenRouterEngine.PROVIDER_ID -> OpenRouterEngine(
             apiKey = { keyManager.readKey(KeyManager.Provider.OPENROUTER) },
+            client = client,
+            modelId = option.modelId
+        )
+        NimEngine.PROVIDER_ID -> NimEngine(
+            apiKey = { keyManager.readKey(KeyManager.Provider.NVIDIA_NIM) },
             client = client,
             modelId = option.modelId
         )
@@ -153,6 +159,7 @@ class ModelRegistry(
         LocalEngine.PROVIDER_ID -> modelManager.state.value is LocalModelState.Ready
         ZenEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.ZEN)
         OpenRouterEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.OPENROUTER)
+        NimEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.NVIDIA_NIM)
         ZaiEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.ZAI)
         else -> false
     }

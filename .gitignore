@@ -8,6 +8,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+/.env
+.env
 app/build
 app/src/main/assets/models/
 *.keystore
