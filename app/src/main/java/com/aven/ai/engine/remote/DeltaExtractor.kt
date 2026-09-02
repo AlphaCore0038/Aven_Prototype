@@ -15,18 +15,20 @@ object DeltaExtractor {
     private val json = Json { ignoreUnknownKeys = true }
 
     /** The content delta of a chunk, or null when the chunk carries none. */
-    fun extractContent(event: String): String? = runCatching {
-        val root = json.parseToJsonElement(event).jsonObject
-        root["choices"]?.jsonArray?.firstOrNull()?.jsonObject
-            ?.get("delta")?.jsonObject
-            ?.get("content")?.jsonPrimitive?.contentOrNull
-    }.getOrNull()
+    fun extractContent(event: String): String? = extractContentAndError(event).first
 
     /** A provider-side error message, or null when the chunk is not an error. */
-    fun extractError(event: String): String? = runCatching {
+    fun extractError(event: String): String? = extractContentAndError(event).second
+
+    /** Single-parse extraction of both delta and error to avoid double JSON parsing per token. */
+    fun extractContentAndError(event: String): Pair<String?, String?> = runCatching {
         val root = json.parseToJsonElement(event).jsonObject
-        root["error"]?.jsonObject?.get("message")?.jsonPrimitive?.contentOrNull
-    }.getOrNull()
+        val content = root["choices"]?.jsonArray?.firstOrNull()?.jsonObject
+            ?.get("delta")?.jsonObject
+            ?.get("content")?.jsonPrimitive?.contentOrNull
+        val error = root["error"]?.jsonObject?.get("message")?.jsonPrimitive?.contentOrNull
+        content to error
+    }.getOrNull() ?: (null to null)
 
     /** Usage from a chunk with `stream_options.include_usage`, or null when absent. */
     fun extractUsage(event: String): Pair<Int, Int>? = runCatching {

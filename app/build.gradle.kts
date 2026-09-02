@@ -173,6 +173,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Markdown rendering (assistant responses)
+    implementation(libs.markdown.renderer)
+    implementation(libs.markdown.renderer.code)
+
     // Unit tests (JVM + Robolectric)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

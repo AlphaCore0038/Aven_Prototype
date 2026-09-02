@@ -45,6 +45,12 @@ class ModelRegistryTest {
             downloader = NoOpDownloader(),
             scope = CoroutineScope(Dispatchers.Unconfined),
             modelLoader = { null }
+        ),
+        gemmaManager = ModelManager(
+            modelFile = { File(context.cacheDir, "missing-gemma.gguf") },
+            downloader = NoOpDownloader(),
+            scope = CoroutineScope(Dispatchers.Unconfined),
+            modelLoader = { null }
         )
     )
 
@@ -67,5 +73,15 @@ class ModelRegistryTest {
         assertTrue(options.any { it.providerId == LocalEngine.PROVIDER_ID })
         assertTrue(options.filter { it.providerId != LocalEngine.PROVIDER_ID }
             .all { it.kind == EngineKind.REMOTE })
+    }
+
+    @Test
+    fun `local section contains both llama and gemma`() {
+        val options = registry().options.filter { it.providerId == LocalEngine.PROVIDER_ID }
+        assertTrue(options.any { it.modelId == LocalEngine.MODEL_ID })
+        assertTrue(options.any { it.modelId == LocalEngine.GEMMA_ID })
+        assertTrue(options.size == 2)
+        assertTrue(options.any { it.displayName == "Llama 3.2 1B" })
+        assertTrue(options.any { it.displayName == "Gemma 1B" })
     }
 }

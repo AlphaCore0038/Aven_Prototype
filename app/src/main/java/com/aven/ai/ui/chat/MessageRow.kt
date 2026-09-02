@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import android.content.ClipData
+import com.aven.ai.ui.components.AssistantMarkdown
 import kotlinx.coroutines.launch
 
 private val UserBubbleShape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)
@@ -57,18 +58,22 @@ fun MessageRow(message: UiMessage, modifier: Modifier = Modifier) {
             modifier = Modifier.widthIn(max = 320.dp),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
         ) {
-            Surface(
-                shape = if (isUser) UserBubbleShape else RoundedCornerShape(12.dp),
-                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
-            if (!isUser) {
+            if (isUser) {
+                Surface(
+                    shape = UserBubbleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Text(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)) {
+                    AssistantMarkdown(content = message.content)
+                }
                 CopyAction(message.content)
             }
             if (!isUser && message.tokensPerSecond != null && message.timeToFirstTokenMs != null) {
@@ -103,10 +108,10 @@ fun StreamingRow(
         label = "cursorAlpha"
     )
     Row(modifier = modifier.fillMaxWidth()) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface
+        Box(
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .padding(horizontal = 4.dp, vertical = 6.dp)
         ) {
             if (text.isEmpty()) {
                 ThinkingDots()

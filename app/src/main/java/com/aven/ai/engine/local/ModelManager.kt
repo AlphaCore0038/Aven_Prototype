@@ -30,7 +30,9 @@ class ModelManager(
     private val modelFile: () -> File,
     private val downloader: ModelDownloader,
     private val scope: CoroutineScope,
-    private val modelLoader: (String) -> LocalEngine?
+    private val modelLoader: (String) -> LocalEngine?,
+    private val ggufUrl: String = LocalEngine.GGUF_URL,
+    private val isSelected: () -> Boolean = { true }
 ) {
 
     private val _state = MutableStateFlow<LocalModelState>(LocalModelState.NotInstalled)
@@ -41,7 +43,7 @@ class ModelManager(
     private var engine: LocalEngine? = null
 
     init {
-        if (modelFile().isFile) {
+        if (modelFile().isFile && isSelected()) {
             _state.value = LocalModelState.Loading
             // Load the engine instance on a background thread so we don't block
             // the lazy initialization of the container.
@@ -61,7 +63,7 @@ class ModelManager(
         downloadJob = scope.launch {
             _state.update { LocalModelState.Downloading(0f) }
             try {
-                downloader.download(LocalEngine.GGUF_URL, modelFile()) { progress ->
+                downloader.download(ggufUrl, modelFile()) { progress ->
                     // Throttle emissions: the downloader reports per-chunk and a
                     // recomposition per 8 KB would hammer the UI thread.
                     if (progress - lastEmitted >= PROGRESS_STEP || progress >= 1f) {
@@ -96,6 +98,26 @@ class ModelManager(
         engine = null
         modelFile().delete()
         _state.value = LocalModelState.NotInstalled
+    }
+
+    /** Unloads the native engine to free RAM but keeps the file on disk. */
+    fun unloadEngine() {
+        loadJob?.cancel()
+        loadJob = null
+        LocalEngine.unload(engine)
+        engine = null
+        if (_state.value is LocalModelState.Ready || _state.value is LocalModelState.Loading) {
+            _state.value = LocalModelState.NotInstalled
+        }
+    }
+
+    fun isInstalled(): Boolean = modelFile().isFile
+
+    fun ensureReady() {
+        if (_state.value is LocalModelState.Downloading || _state.value is LocalModelState.Loading) return
+        if (!modelFile().isFile) return
+        _state.value = LocalModelState.Loading
+        loadJob = scope.launch { verifyAndReady() }
     }
 
     /**

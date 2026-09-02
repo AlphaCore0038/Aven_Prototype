@@ -58,4 +58,24 @@ class LocalEngineTest {
         assertTrue("second history message is truncated away", !prompt.contains(big + big))
         assertTrue("the new prompt is always present", prompt.contains("new"))
     }
+
+    @Test
+    fun `buildPrompt uses gemma 3 template for gemma model`() {
+        val gemmaEngine = LocalEngine(null, LocalEngine.GEMMA_ID)
+        val prompt = gemmaEngine.buildPrompt(request("hello"))
+        assertTrue("gemma starts with bos", prompt.startsWith("<bos>"))
+        assertTrue("gemma uses start_of_turn", prompt.contains("<start_of_turn>user"))
+        assertTrue("gemma ends with model turn", prompt.trimEnd().endsWith("<start_of_turn>model"))
+        assertTrue("gemma does not use llama header", !prompt.contains("<|start_header_id|>"))
+    }
+
+    @Test
+    fun `llama and gemma use different templates`() {
+        val gemmaEngine = LocalEngine(null, LocalEngine.GEMMA_ID)
+        val llamaPrompt = engine.buildPrompt(request("hello"))
+        val gemmaPrompt = gemmaEngine.buildPrompt(request("hello"))
+        assertTrue(llamaPrompt != gemmaPrompt)
+        assertTrue(llamaPrompt.contains("<|start_header_id|>"))
+        assertTrue(gemmaPrompt.contains("<start_of_turn>"))
+    }
 }

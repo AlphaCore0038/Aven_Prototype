@@ -23,6 +23,8 @@ fun AvenNavHost(
     navController: NavHostController,
     onOpenDrawer: () -> Unit,
     onOpenModelSelection: () -> Unit,
+    modelSheetOpen: Boolean,
+    onModelSheetOpenChange: (Boolean) -> Unit,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
 ) {
     NavHost(
@@ -57,7 +59,9 @@ fun AvenNavHost(
                         launchSingleTop = true
                     }
                 },
-                onOpenModelSelection = onOpenModelSelection
+                onOpenModelSelection = onOpenModelSelection,
+                modelSheetOpen = modelSheetOpen,
+                onModelSheetOpenChange = onModelSheetOpenChange
             )
         }
 

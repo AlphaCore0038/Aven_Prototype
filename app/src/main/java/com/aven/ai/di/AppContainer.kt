@@ -10,12 +10,18 @@ import com.aven.ai.data.settings.UserProfileRepository
 import com.aven.ai.engine.AiChatEngine
 import com.aven.ai.engine.ModelRegistry
 import com.aven.ai.engine.local.LocalEngine
+import com.aven.ai.engine.local.LocalModelState
 import com.aven.ai.engine.local.ModelDownloader
 import com.aven.ai.engine.local.ModelManager
 import com.aven.ai.engine.local.OkHttpModelDownloader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.File
 
@@ -51,20 +57,63 @@ class AppContainer(context: Context) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
-    /** The on-device model lifecycle: download, verify, load, remove. */
+    /** The on-device model lifecycle: download, verify, load, remove — Llama. */
     val modelManager: ModelManager by lazy {
         ModelManager(
             modelFile = { File(applicationContext.filesDir, "models/${LocalEngine.MODEL_FILE_NAME}") },
             downloader = httpDownloader,
             scope = applicationScope,
-            modelLoader = { path -> LocalEngine.load(path) }
+            modelLoader = { path -> LocalEngine.load(path, LocalEngine.MODEL_ID) },
+            ggufUrl = LocalEngine.GGUF_URL,
+            isSelected = {
+                runCatching { runBlocking { settingsRepository.settings.first().defaultModelId } }
+                    .getOrNull().let { it == null || it == LocalEngine.MODEL_ID }
+            }
         )
+    }
+
+    /** Gemma 3 1B — same infrastructure, separate file, never resident together with Llama. */
+    val gemmaModelManager: ModelManager by lazy {
+        ModelManager(
+            modelFile = { File(applicationContext.filesDir, "models/${LocalEngine.GEMMA_FILE_NAME}") },
+            downloader = httpDownloader,
+            scope = applicationScope,
+            modelLoader = { path -> LocalEngine.load(path, LocalEngine.GEMMA_ID) },
+            ggufUrl = LocalEngine.GEMMA_URL,
+            isSelected = {
+                runCatching { runBlocking { settingsRepository.settings.first().defaultModelId } }
+                    .getOrNull() == LocalEngine.GEMMA_ID
+            }
+        )
+    }
+
+    fun localManagerFor(modelId: String?): ModelManager = when (modelId) {
+        LocalEngine.GEMMA_ID -> gemmaModelManager
+        else -> modelManager
     }
 
     private val httpDownloader: ModelDownloader by lazy { OkHttpModelDownloader(httpClient) }
 
     val modelRegistry: ModelRegistry by lazy {
-        ModelRegistry(keyManager, httpClient, settingsRepository, modelManager)
+        ModelRegistry(keyManager, httpClient, settingsRepository, modelManager, gemmaModelManager)
+    }
+
+    init {
+        // Keep only the selected local model resident in RAM.
+        applicationScope.launch {
+            settingsRepository.settings
+                .map { it.defaultModelId }
+                .distinctUntilChanged()
+                .collect { selectedId ->
+                    val isGemma = selectedId == LocalEngine.GEMMA_ID
+                    val selected = if (isGemma) gemmaModelManager else modelManager
+                    val other = if (isGemma) modelManager else gemmaModelManager
+                    if (other.engine() != null) other.unloadEngine()
+                    if (selected.isInstalled() && selected.state.value is LocalModelState.NotInstalled) {
+                        selected.ensureReady()
+                    }
+                }
+        }
     }
 
     /**

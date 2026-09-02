@@ -31,7 +31,8 @@ class ModelRegistry(
     private val keyManager: KeyManager,
     private val client: OkHttpClient,
     private val settingsRepository: SettingsRepository,
-    private val modelManager: ModelManager
+    private val modelManager: ModelManager,
+    private val gemmaManager: ModelManager
 ) {
 
     val options: List<AiModelOption> = listOf(
@@ -40,6 +41,13 @@ class ModelRegistry(
             modelId = LocalEngine.MODEL_ID,
             displayName = "Llama 3.2 1B",
             description = "On-device — private, offline, no keys",
+            kind = EngineKind.LOCAL
+        ),
+        AiModelOption(
+            providerId = LocalEngine.PROVIDER_ID,
+            modelId = LocalEngine.GEMMA_ID,
+            displayName = "Gemma 1B",
+            description = "Google Gemma 3 1B — Local",
             kind = EngineKind.LOCAL
         ),
         AiModelOption(
@@ -59,7 +67,7 @@ class ModelRegistry(
         AiModelOption(
             providerId = OpenRouterEngine.PROVIDER_ID,
             modelId = "nvidia/nemotron-3-ultra-550b-a55b:free",
-            displayName = "Nemotron 3 Ultra (OpenRouter)",
+            displayName = "Nemotron 3 Ultra",
             description = "OpenRouter — NVIDIA reasoning, free",
             kind = EngineKind.REMOTE
         ),
@@ -108,8 +116,10 @@ class ModelRegistry(
     )
 
     fun engineFor(option: AiModelOption): AiChatEngine = when (option.providerId) {
-        LocalEngine.PROVIDER_ID -> modelManager.engine()
-            ?: UnavailableEngine()
+        LocalEngine.PROVIDER_ID -> {
+            val mgr = if (option.modelId == LocalEngine.GEMMA_ID) gemmaManager else modelManager
+            mgr.engine() ?: UnavailableEngine()
+        }
         ZenEngine.PROVIDER_ID -> ZenEngine(
             apiKey = { keyManager.readKey(KeyManager.Provider.ZEN) },
             client = client,
@@ -143,7 +153,10 @@ class ModelRegistry(
         val saved = options.firstOrNull {
             (it.providerId == providerId) && (it.modelId == modelId)
         }
-        if (saved != null && isAvailable(saved)) return engineFor(saved)
+        if (saved != null) {
+            if (isAvailable(saved)) return engineFor(saved)
+            if (saved.kind == EngineKind.LOCAL) return UnavailableEngine()
+        }
 
         options.firstOrNull { isAvailable(it) }?.let { return engineFor(it) }
         return UnavailableEngine()
@@ -156,7 +169,10 @@ class ModelRegistry(
 
     /** True when the option can generate right now (key present / model ready). */
     fun isAvailable(option: AiModelOption): Boolean = when (option.providerId) {
-        LocalEngine.PROVIDER_ID -> modelManager.state.value is LocalModelState.Ready
+        LocalEngine.PROVIDER_ID -> {
+            val mgr = if (option.modelId == LocalEngine.GEMMA_ID) gemmaManager else modelManager
+            mgr.state.value is LocalModelState.Ready
+        }
         ZenEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.ZEN)
         OpenRouterEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.OPENROUTER)
         NimEngine.PROVIDER_ID -> keyManager.hasKey(KeyManager.Provider.NVIDIA_NIM)

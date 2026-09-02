@@ -6,6 +6,7 @@ import com.aven.ai.data.local.MessageEntity
 import com.aven.ai.engine.AiChatEngine
 import com.aven.ai.engine.AiChatException
 import com.aven.ai.engine.GenerateRequest
+import android.util.Log
 import com.aven.ai.engine.local.LocalEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -170,6 +171,10 @@ class ChatController(
                     var ttftMs: Long? = null
                     val t0 = System.nanoTime()
                     var firstDelta = true
+                    var uiUpdateCount = 0
+                    val pendingBuffer = StringBuilder()
+                    var lastFlushNs = t0
+                    Log.d("AvenStream", "Request start provider=$providerId model=$modelId")
                     try {
                         engine.generate(
                             GenerateRequest(
@@ -182,13 +187,28 @@ class ChatController(
                             if (firstDelta) {
                                 ttftMs = (System.nanoTime() - t0) / 1_000_000
                                 firstDelta = false
+                                Log.d("AvenStream", "TTFT ${ttftMs}ms")
                             }
-                            _uiState.update { it.copy(streamingText = it.streamingText + delta) }
+                            pendingBuffer.append(delta)
+                            val now = System.nanoTime()
+                            val elapsedSinceFlush = now - lastFlushNs
+                            if (elapsedSinceFlush >= 40_000_000L || pendingBuffer.length > 120) {
+                                val chunk = pendingBuffer.toString()
+                                pendingBuffer.clear()
+                                _uiState.update { it.copy(streamingText = it.streamingText + chunk) }
+                                lastFlushNs = now
+                                uiUpdateCount++
+                            }
+                        }
+                        if (pendingBuffer.isNotEmpty()) {
+                            _uiState.update { it.copy(streamingText = it.streamingText + pendingBuffer.toString()) }
+                            uiUpdateCount++
                         }
 
                         val finalText = _uiState.value.streamingText
+                        val totalMs = (System.nanoTime() - t0) / 1_000_000
+                        Log.d("AvenStream", "Generation complete ${totalMs}ms TTFT ${ttftMs}ms updates $uiUpdateCount")
                         if (finalText.isNotBlank()) {
-                            val totalMs = (System.nanoTime() - t0) / 1_000_000
                             // Fallback token estimate: ~4 chars per token if native/usage not available.
                             val estTokens = (finalText.length / 4).coerceAtLeast(1)
                             val tps = if (totalMs > 0) (estTokens * 1000f / totalMs) else null
@@ -213,6 +233,10 @@ class ChatController(
                             generateAndStoreTitle(targetConversationId, prompt, finalText)
                         }
                     } catch (e: CancellationException) {
+                        if (pendingBuffer.isNotEmpty()) {
+                            _uiState.update { it.copy(streamingText = it.streamingText + pendingBuffer.toString()) }
+                            pendingBuffer.clear()
+                        }
                         val partial = _uiState.value.streamingText
                         if (partial.isNotBlank()) {
                             chatDao.upsertMessage(

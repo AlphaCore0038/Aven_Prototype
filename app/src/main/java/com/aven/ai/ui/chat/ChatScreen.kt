@@ -27,11 +27,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Menu
@@ -40,6 +41,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -74,8 +76,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aven.ai.R
+import com.aven.ai.data.settings.SettingsRepository
 import com.aven.ai.engine.AiModelOption
 import com.aven.ai.engine.EngineKind
+import com.aven.ai.engine.ResponseMode
 import com.aven.ai.engine.local.LocalModelState
 import com.aven.ai.ui.components.MessageComposer
 import kotlinx.coroutines.flow.collect
@@ -93,6 +97,8 @@ fun ChatScreen(
     onOpenDrawer: () -> Unit,
     onTogglePrivate: () -> Unit,
     onOpenModelSelection: () -> Unit,
+    modelSheetOpen: Boolean,
+    onModelSheetOpenChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val viewModel: ChatViewModel = viewModel(factory = ChatViewModel.Factory)
@@ -100,11 +106,11 @@ fun ChatScreen(
     val state by controller.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
     val localModelState by viewModel.localModelState.collectAsStateWithLifecycle()
+    val gemmaModelState by viewModel.gemmaModelState.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
 
     var text by rememberSaveable { mutableStateOf("") }
-    var modelSheetOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -145,7 +151,7 @@ fun ChatScreen(
             if (model.providerId == "local") localModelState is LocalModelState.Ready else true
         } ?: viewModel.models.first()
 
-        "${actual.displayName} • ${providerName(actual.providerId)}"
+        actual.displayName
     }
 
     Column(
@@ -204,7 +210,7 @@ fun ChatScreen(
                 text = ""
             },
             onStop = { controller.stop() },
-            onOpenModelSelection = { if (!state.isGenerating) modelSheetOpen = true },
+            onOpenModelSelection = { if (!state.isGenerating) onModelSheetOpenChange(true) },
             onAddAction = { },
             focusRequester = focusRequester,
             modifier = Modifier
@@ -225,24 +231,32 @@ fun ChatScreen(
     }
 
     if (modelSheetOpen) {
+        val selectedVariant = try {
+            ResponseMode.valueOf(settings.responseMode)
+        } catch (_: Exception) {
+            ResponseMode.MEDIUM
+        }
         ModelSelectionSheet(
             models = viewModel.models,
             current = viewModel.models.firstOrNull {
                 it.providerId == settings.defaultProviderId && it.modelId == settings.defaultModelId
             },
-            localModelState = localModelState,
+            llamaState = localModelState,
+            gemmaState = gemmaModelState,
+            selectedVariant = selectedVariant,
+            onSelectVariant = { viewModel.setResponseMode(it) },
             onPick = { option ->
                 if (state.isGenerating) return@ModelSelectionSheet
                 scope.launch { viewModel.selectModel(option) }
-                modelSheetOpen = false
+                onModelSheetOpenChange(false)
             },
-            onInstallLocalModel = viewModel::installLocalModel,
-            onCancelLocalModelDownload = viewModel::cancelLocalModelDownload,
-            onRemoveLocalModel = {
-                modelSheetOpen = false
-                viewModel.removeLocalModel()
+            onInstallFor = { id -> viewModel.installLocalModelFor(id) },
+            onCancelFor = { id -> viewModel.cancelLocalModelDownloadFor(id) },
+            onRemoveFor = { id ->
+                onModelSheetOpenChange(false)
+                viewModel.removeLocalModelFor(id)
             },
-            onDismiss = { modelSheetOpen = false }
+            onDismiss = { onModelSheetOpenChange(false) }
         )
     }
 }
@@ -260,11 +274,14 @@ private fun providerName(providerId: String): String = when (providerId) {
 private fun ModelSelectionSheet(
     models: List<AiModelOption>,
     current: AiModelOption?,
-    localModelState: LocalModelState,
+    llamaState: LocalModelState,
+    gemmaState: LocalModelState,
+    selectedVariant: ResponseMode,
+    onSelectVariant: (ResponseMode) -> Unit,
     onPick: (AiModelOption) -> Unit,
-    onInstallLocalModel: () -> Unit,
-    onCancelLocalModelDownload: () -> Unit,
-    onRemoveLocalModel: () -> Unit,
+    onInstallFor: (String) -> Unit,
+    onCancelFor: (String) -> Unit,
+    onRemoveFor: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -309,26 +326,38 @@ private fun ModelSelectionSheet(
             
             Spacer(modifier = Modifier.height(24.dp))
 
+            VariantDropdown(
+                selected = selectedVariant,
+                onSelect = onSelectVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+
             models.forEach { option ->
+                val stateForOption = when (option.modelId) {
+                    com.aven.ai.engine.local.LocalEngine.GEMMA_ID -> gemmaState
+                    com.aven.ai.engine.local.LocalEngine.MODEL_ID -> llamaState
+                    else -> if (option.kind == EngineKind.LOCAL) llamaState else LocalModelState.Ready
+                }
                 ModelOptionRow(
                     option = option,
                     isCurrent = option.providerId == current?.providerId &&
                         option.modelId == current?.modelId,
-                    localModelState = localModelState,
+                    localModelState = stateForOption,
                     onClick = {
-                        // Button-only interaction for the offline model until
-                        // it is installed; the row itself selects once Ready.
                         if (option.kind == EngineKind.LOCAL &&
-                            localModelState !is LocalModelState.Ready
+                            stateForOption !is LocalModelState.Ready
                         ) {
-                            // no-op
+                            // no-op until installed
                         } else {
                             onPick(option)
                         }
                     },
-                    onInstallLocal = onInstallLocalModel,
-                    onCancelLocalDownload = onCancelLocalModelDownload,
-                    onRemoveLocal = onRemoveLocalModel
+                    onInstallLocal = { onInstallFor(option.modelId) },
+                    onCancelLocalDownload = { onCancelFor(option.modelId) },
+                    onRemoveLocal = { onRemoveFor(option.modelId) }
                 )
             }
         }
@@ -468,6 +497,106 @@ private fun LocalModelStateAction(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun VariantDropdown(
+    selected: ResponseMode,
+    onSelect: (ResponseMode) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Variant",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Surface(
+                onClick = { expanded = !expanded },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selected.name.lowercase().replaceFirstChar { it.titlecase() },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+        if (expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                ResponseMode.entries.forEach { mode ->
+                    VariantOption(
+                        label = mode.name.lowercase().replaceFirstChar { it.titlecase() },
+                        selected = mode == selected,
+                        onSelect = {
+                            onSelect(mode)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VariantOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        onClick = onSelect,
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+        border = if (selected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

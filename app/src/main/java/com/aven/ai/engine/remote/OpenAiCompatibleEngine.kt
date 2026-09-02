@@ -107,9 +107,8 @@ abstract class OpenAiCompatibleEngine(
                                 sawDone = true
                                 return@parse
                             }
-                            val error = DeltaExtractor.extractError(event)
+                            val (delta, error) = DeltaExtractor.extractContentAndError(event)
                             if (error != null) throw AiChatException(error)
-                            val delta = DeltaExtractor.extractContent(event)
                             if (!delta.isNullOrEmpty()) {
                                 currentCoroutineContext().ensureActive()
                                 emittedAny = true

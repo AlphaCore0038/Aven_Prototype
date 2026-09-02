@@ -21,11 +21,15 @@ import kotlinx.coroutines.withContext
  * cancelled collector stops the native loop on its next token.
  */
 class LocalEngine internal constructor(
-    private val handle: Long?
+    private val handle: Long?,
+    private val modelId: String = MODEL_ID
 ) : AiChatEngine {
 
-    override val id = "${PROVIDER_ID}/$MODEL_ID"
-    override val displayName = "Llama 3.2 1B"
+    override val id = "${PROVIDER_ID}/$modelId"
+    override val displayName = when (modelId) {
+        GEMMA_ID -> "Gemma 1B"
+        else -> "Llama 3.2 1B"
+    }
 
     private val loadedHandle: Long
         get() = handle ?: throw AiChatException("The local model is not loaded.")
@@ -63,28 +67,48 @@ class LocalEngine internal constructor(
         awaitClose { LlamaNative.nativeCancel() }
     }
 
-    /** Builds the Llama 3.2 Instruct chat template from history + prompt. */
+    /** Builds the chat template for the selected local model. */
     internal fun buildPrompt(request: GenerateRequest): String {
         val system = "You are Aven, a helpful, honest, and concise AI assistant. Answer directly and clearly."
         val history = truncateHistory(request.history)
-        val conversation = buildString {
-            history.forEach { message ->
-                append(header(message.role))
-                append(message.content)
-                append(EOT)
+        return if (modelId == GEMMA_ID) {
+            // Gemma 3 Instruct: <bos><start_of_turn>user\n...<end_of_turn>\n<start_of_turn>model\n
+            buildString {
+                append(GEMMA_BOS)
+                append(GEMMA_START + "user\n")
+                append(system)
+                append(GEMMA_END)
+                history.forEach { message ->
+                    val role = if (message.role == "assistant") "model" else "user"
+                    append(GEMMA_START + role + "\n")
+                    append(message.content)
+                    append(GEMMA_END)
+                }
+                append(GEMMA_START + "user\n")
+                append(request.prompt)
+                append(GEMMA_END)
+                append(GEMMA_START + "model\n")
             }
-        }
-        return buildString {
-            append(BOS)
-            append(header("system"))
-            append(system)
-            append(EOT)
-            append(conversation)
-            append(header("user"))
-            append(request.prompt)
-            append(EOT)
-            append(header("assistant"))
-            append("\n")
+        } else {
+            val conversation = buildString {
+                history.forEach { message ->
+                    append(header(message.role))
+                    append(message.content)
+                    append(EOT)
+                }
+            }
+            buildString {
+                append(BOS)
+                append(header("system"))
+                append(system)
+                append(EOT)
+                append(conversation)
+                append(header("user"))
+                append(request.prompt)
+                append(EOT)
+                append(header("assistant"))
+                append("\n")
+            }
         }
     }
 
@@ -112,13 +136,21 @@ class LocalEngine internal constructor(
         const val GGUF_URL =
             "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
 
+        const val GEMMA_ID = "gemma-3-1b-it"
+        const val GEMMA_FILE_NAME = "gemma-3-1b-it-Q4_K_M.gguf"
+        const val GEMMA_URL =
+            "https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf"
+
         private const val BOS = "<|begin_of_text|>"
         private const val EOT = "<|eot_id|>"
+        private const val GEMMA_BOS = "<bos>"
+        private const val GEMMA_START = "<start_of_turn>"
+        private const val GEMMA_END = "<end_of_turn>\n"
         private const val MAX_HISTORY_MESSAGES = 12
         private const val MAX_HISTORY_CHARS = 8000
 
         /** Loads the model from disk and returns a usable engine (0 = failure). */
-        fun load(path: String): LocalEngine? {
+        fun load(path: String, modelId: String = MODEL_ID): LocalEngine? {
             val handle = try {
                 LlamaNative.nativeLoad(path)
             } catch (e: Throwable) {
@@ -126,7 +158,7 @@ class LocalEngine internal constructor(
                 // letting them escape here would crash at app startup.
                 return null
             }
-            return if (handle == 0L) null else LocalEngine(handle)
+            return if (handle == 0L) null else LocalEngine(handle, modelId)
         }
 
         fun unload(engine: LocalEngine?) {
