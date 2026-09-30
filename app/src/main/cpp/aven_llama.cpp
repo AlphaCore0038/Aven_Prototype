@@ -226,7 +226,7 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerate(JNIEnv * env, jobject /
             break;
         }
         const llama_token token = llama_sampler_sample(aven->sampler, aven->ctx, -1);
-        if (token == eos || token == eot) {
+        if (llama_vocab_is_eog(vocab, token)) {
             break;
         }
         llama_sampler_accept(aven->sampler, token);
@@ -278,5 +278,186 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerate(JNIEnv * env, jobject /
     if (env->ExceptionCheck()) {
         env->ExceptionClear();
     }
+    return env->NewStringUTF(output.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_aven_ai_engine_local_LlamaNative_nativeGenerateChat(JNIEnv * env, jobject /*thiz*/, jlong handle,
+                                                              jstring system,
+                                                              jobjectArray historyRoles,
+                                                              jobjectArray historyContents,
+                                                              jstring prompt,
+                                                              jobject listener) {
+    if (handle == 0) {
+        throw_java(env, "Local model is not loaded");
+        return nullptr;
+    }
+    AvenModel * aven = reinterpret_cast<AvenModel *>(handle);
+
+    const char * system_c = env->GetStringUTFChars(system, nullptr);
+    const char * prompt_c = env->GetStringUTFChars(prompt, nullptr);
+    if (system_c == nullptr || prompt_c == nullptr) {
+        if (system_c) env->ReleaseStringUTFChars(system, system_c);
+        if (prompt_c) env->ReleaseStringUTFChars(prompt, prompt_c);
+        return nullptr;
+    }
+
+    jsize historyLen = 0;
+    if (historyRoles && historyContents) {
+        jsize rlen = env->GetArrayLength(historyRoles);
+        jsize clen = env->GetArrayLength(historyContents);
+        historyLen = rlen < clen ? rlen : clen;
+    }
+
+    std::vector<std::string> roleStorage;
+    std::vector<std::string> contentStorage;
+    roleStorage.reserve(1 + historyLen + 1);
+    contentStorage.reserve(1 + historyLen + 1);
+    std::vector<const char *> rolePtrs;
+    std::vector<const char *> contentPtrs;
+    std::vector<jstring> historyRoleStrs;
+    std::vector<jstring> historyContentStrs;
+    std::vector<const char *> historyRoleCs;
+    std::vector<const char *> historyContentCs;
+
+    // Keep history jstrings and their UTF chars alive during template apply
+    for (jsize i = 0; i < historyLen; ++i) {
+        jstring r = (jstring) env->GetObjectArrayElement(historyRoles, i);
+        jstring c = (jstring) env->GetObjectArrayElement(historyContents, i);
+        historyRoleStrs.push_back(r);
+        historyContentStrs.push_back(c);
+        const char * rc = r ? env->GetStringUTFChars(r, nullptr) : "";
+        const char * cc = c ? env->GetStringUTFChars(c, nullptr) : "";
+        historyRoleCs.push_back(rc);
+        historyContentCs.push_back(cc);
+    }
+
+    std::vector<llama_chat_message> chat;
+    chat.reserve(1 + historyLen + 1);
+    // system
+    chat.push_back({system_c, system_c ? system_c + strlen(system_c) : system_c});
+    // Actually llama_chat_message expects role and content as const char*; we need to set correctly
+    // Rebuild with proper role/content split
+    chat.clear();
+    chat.push_back({"system", system_c});
+    for (jsize i = 0; i < historyLen; ++i) {
+        chat.push_back({historyRoleCs[i], historyContentCs[i]});
+    }
+    chat.push_back({"user", prompt_c});
+
+    const char * tmpl = llama_model_chat_template(aven->model, nullptr);
+    std::string formatted;
+    bool usedTemplate = false;
+    if (tmpl) {
+        // Estimate buffer: 2 * total chars + 512
+        size_t totalLen = 0;
+        for (auto & m : chat) {
+            totalLen += strlen(m.role) + strlen(m.content) + 32;
+        }
+        std::vector<char> buf(totalLen * 2 + 512);
+        int32_t res = llama_chat_apply_template(tmpl, chat.data(), chat.size(), true, buf.data(), (int32_t) buf.size());
+        if (res < 0) {
+            // Buffer too small - retry with exact size
+            buf.resize(-res);
+            res = llama_chat_apply_template(tmpl, chat.data(), chat.size(), true, buf.data(), (int32_t) buf.size());
+        }
+        if (res >= 0) {
+            formatted.assign(buf.data(), res);
+            usedTemplate = true;
+        }
+    }
+    // Fallback to manual if no template or apply failed
+    if (!usedTemplate) {
+        // Manual fallback uses same logic as before but now with parse_special=true in tokenization
+        // For simplicity, reuse Llama manual if model is Llama, else Gemma
+        // Detect via template name or model type - fallback to Llama style
+        formatted = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n";
+        formatted += system_c;
+        formatted += "<|eot_id|>";
+        for (jsize i = 0; i < historyLen; ++i) {
+            const char * r = historyRoleCs[i];
+            const char * c = historyContentCs[i];
+            std::string role = r ? r : "user";
+            if (role == "model") role = "assistant";
+            formatted += "<|start_header_id|>" + role + "<|end_header_id|>\n\n";
+            formatted += c ? c : "";
+            formatted += "<|eot_id|>";
+        }
+        formatted += "<|start_header_id|>user<|end_header_id|>\n\n";
+        formatted += prompt_c;
+        formatted += "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n\n";
+    }
+
+    // Release history UTF chars and system/prompt after template (keep formatted)
+    for (jsize i = 0; i < historyLen; ++i) {
+        if (historyRoleStrs[i]) {
+            env->ReleaseStringUTFChars(historyRoleStrs[i], historyRoleCs[i]);
+            env->DeleteLocalRef(historyRoleStrs[i]);
+        }
+        if (historyContentStrs[i]) {
+            env->ReleaseStringUTFChars(historyContentStrs[i], historyContentCs[i]);
+            env->DeleteLocalRef(historyContentStrs[i]);
+        }
+    }
+    env->ReleaseStringUTFChars(system, system_c);
+    env->ReleaseStringUTFChars(prompt, prompt_c);
+
+    // Now tokenize the formatted prompt with parse_special=true
+    const llama_vocab * vocab = llama_model_get_vocab(aven->model);
+    const llama_token eos = llama_vocab_eos(vocab);
+    const llama_token eot = llama_vocab_eot(vocab);
+
+    std::vector<llama_token> tokens(llama_vocab_n_tokens(vocab));
+    const int32_t n_prompt = llama_tokenize(vocab, formatted.c_str(), (int32_t) formatted.size(), tokens.data(), tokens.size(), true, true);
+    if (n_prompt < 0) {
+        throw_java(env, "Failed to tokenize the prompt");
+        return nullptr;
+    }
+    tokens.resize(n_prompt);
+
+    const int32_t n_ctx = llama_n_ctx(aven->ctx);
+    if (n_prompt >= n_ctx - 1) {
+        throw_java(env, "The message is too long for the on-device context window");
+        return nullptr;
+    }
+
+    g_stop.store(false);
+    llama_memory_clear(llama_get_memory(aven->ctx), true);
+
+    constexpr int32_t DECODE_CHUNK = 512;
+    for (int32_t done = 0; done < n_prompt && !g_stop.load(); done += DECODE_CHUNK) {
+        const int32_t take = std::min(DECODE_CHUNK, n_prompt - done);
+        llama_batch chunk = llama_batch_get_one(tokens.data() + done, take);
+        if (llama_decode(aven->ctx, chunk) != 0) {
+            throw_java(env, "Failed to process the message");
+            return nullptr;
+        }
+    }
+
+    std::string output;
+    for (int step = 0; step < MAX_TOKENS && n_prompt + step < n_ctx - 1; ++step) {
+        if (g_stop.load()) break;
+        const llama_token token = llama_sampler_sample(aven->sampler, aven->ctx, -1);
+        if (llama_vocab_is_eog(vocab, token)) break;
+        llama_sampler_accept(aven->sampler, token);
+        char piece_buf[256];
+        const int n_piece = llama_token_to_piece(vocab, token, piece_buf, sizeof(piece_buf), 0, false);
+        if (n_piece < 0) break;
+        if (n_piece < (int)sizeof(piece_buf)) piece_buf[n_piece] = '\0';
+        else piece_buf[sizeof(piece_buf) - 1] = '\0';
+        output.append(piece_buf, n_piece);
+        if (listener != nullptr && g_listener_on_token != nullptr) {
+            jstring piece = env->NewStringUTF(piece_buf);
+            if (env->ExceptionCheck()) { env->ExceptionClear(); break; }
+            env->CallVoidMethod(listener, g_listener_on_token, piece);
+            env->DeleteLocalRef(piece);
+            if (env->ExceptionCheck()) { env->ExceptionClear(); break; }
+        }
+        llama_token one = token;
+        llama_batch one_batch = llama_batch_get_one(&one, 1);
+        if (llama_decode(aven->ctx, one_batch) != 0) break;
+    }
+
+    if (env->ExceptionCheck()) env->ExceptionClear();
     return env->NewStringUTF(output.c_str());
 }

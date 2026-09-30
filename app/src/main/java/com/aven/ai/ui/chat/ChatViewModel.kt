@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
@@ -31,7 +31,15 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         scope = viewModelScope
     )
 
-    val models: List<AiModelOption> = modelRegistry.options
+    /** Local options first, then the user's configured online models. */
+    val models: StateFlow<List<AiModelOption>> =
+        container.remoteModelRepository.models
+            .map { configs -> modelRegistry.localOptions() + configs.map { modelRegistry.optionFor(it) } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = modelRegistry.localOptions()
+            )
 
     /** The saved selection, exposed as state for the UI. */
     val settingsState: StateFlow<SettingsRepository.AppSettings> =
@@ -41,14 +49,15 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             initialValue = SettingsRepository.AppSettings()
         )
 
-    /** Re-evaluated whenever settings, stored keys, or the local model change. */
+    /** Re-evaluated whenever settings, stored keys, the local model, or the remote configs change. */
     val currentEngine: StateFlow<AiChatEngine> =
         combine(
             settingsRepository.settings,
-            container.keyManager.changes,
+            container.keyManager.changes.onStart { emit(Unit) },
             container.modelManager.state,
-            container.gemmaModelManager.state
-        ) { settings, _, _, _ ->
+            container.gemmaModelManager.state,
+            container.remoteModelRepository.models
+        ) { settings, _, _, _, _ ->
             modelRegistry.engineForSettings(settings.defaultProviderId, settings.defaultModelId)
         }.stateIn(
             scope = viewModelScope,
@@ -86,12 +95,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         if (controller.uiState.value.isGenerating) return
         settingsRepository.setDefaultProvider(option.providerId)
         settingsRepository.setDefaultModel(option.modelId)
-    }
-
-    fun setResponseMode(mode: com.aven.ai.engine.ResponseMode) {
-        viewModelScope.launch {
-            settingsRepository.setResponseMode(mode.name)
-        }
     }
 
     companion object {

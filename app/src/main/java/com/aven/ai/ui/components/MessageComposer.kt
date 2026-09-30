@@ -50,6 +50,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -60,17 +66,17 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aven.ai.ui.theme.AvenSuccess
+import com.aven.ai.ui.theme.rememberRefPalette
 
 /**
- * The Aven composer — a single floating rounded container with:
- *   input zone  -> "+" action  |  multiline text  (no mic)
- *   divider
- *   control row -> model chip  |  connectivity indicator  |  send/stop
- *
+ * The Aven composer — a single floating rounded container matching the
+ * reference visual design, with input zone, control row, and send.
  * The composer is intentionally controlled: [text]/[onTextChange] are owned by
  * the caller (ChatViewModel from Phase 3 onward) so suggestions and rotation
- * never desync it.
+ * never desync it. Voice-model functionality is not supported; the reference's
+ * voice-mode control is not replicated since Aven has no voice-generation service.
  */
 @Composable
 fun MessageComposer(
@@ -86,34 +92,56 @@ fun MessageComposer(
     onOpenModelSelection: () -> Unit,
     onAddAction: () -> Unit,
     focusRequester: FocusRequester? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPrivate: Boolean = false,
+    dark: Boolean = true
 ) {
-    val outerShape = RoundedCornerShape(24.dp)
-    val innerShape = RoundedCornerShape(16.dp)
+    val ref = rememberRefPalette(dark)
+    val outerShape = RoundedCornerShape(28.dp)
+    val innerShape = RoundedCornerShape(22.dp)
     val borderColor = MaterialTheme.colorScheme.outline
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest
-    val inputTextStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Serif)
+    val inputTextStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontFamily = FontFamily.Default
+    )
     val canSend = text.isNotBlank() && !isGenerating && enabled
     val canType = enabled
 
     Surface(
-        modifier = modifier,
+        modifier = if (isPrivate) {
+            modifier.dashedBorder(ref.dashBorder)
+        } else {
+            modifier
+        },
         shape = outerShape,
-        color = surfaceColor,
-        border = BorderStroke(2.5.dp, borderColor)
+        color = ref.card,
+        border = if (isPrivate) null else BorderStroke(1.dp, ref.cardBorder)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 20.dp, bottom = 16.dp)
+        ) {
+            Text(
+                text = "Chat with",
+                fontSize = 17.sp,
+                fontFamily = FontFamily.Default,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+                letterSpacing = (-0.2).sp,
+                color = ref.labelGray,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
             // -------- input zone --------
             val fieldModifier = focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier
             Surface(
                 shape = innerShape,
-                color = surfaceColor,
-                border = BorderStroke(2.dp, borderColor),
+                color = ref.capsule,
+                border = null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Box(
                     modifier = Modifier
-                        .heightIn(min = 48.dp, max = 132.dp)
+                        .heightIn(min = 44.dp, max = 132.dp)
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     BasicTextField(
@@ -132,7 +160,7 @@ fun MessageComposer(
                             Box {
                                 if (text.isEmpty()) {
                                     Text(
-                                        text = "Prompt Here...",
+                                        text = hint,
                                         style = inputTextStyle,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )
@@ -172,7 +200,7 @@ fun MessageComposer(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 // status
                 Surface(
@@ -201,7 +229,7 @@ fun MessageComposer(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 // send button
                 IconButton(
@@ -220,6 +248,29 @@ fun MessageComposer(
             }
         }
     }
+}
+
+/**
+ * Rounded-rectangle dashed outline used for the private/incognito composer.
+ * Drawn as an overlay so the dynamic layout and IME behavior are untouched.
+ */
+private fun Modifier.dashedBorder(
+    color: androidx.compose.ui.graphics.Color
+): Modifier = this.drawWithContent {
+    drawContent()
+    val strokeWidth = 1.dp.toPx()
+    val inset = strokeWidth / 2f
+    val radius = 28.dp.toPx()
+    drawRoundRect(
+        color = color.copy(alpha = 0.6f),
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+        cornerRadius = CornerRadius(radius, radius),
+        style = Stroke(
+            width = strokeWidth,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()), 0f)
+        )
+    )
 }
 
 @Composable

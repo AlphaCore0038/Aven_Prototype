@@ -2,7 +2,10 @@ package com.aven.ai.engine.remote
 
 import com.aven.ai.engine.AiChatEngine
 import com.aven.ai.engine.AiChatException
+import com.aven.ai.engine.AiError
 import com.aven.ai.engine.GenerateRequest
+import com.aven.ai.engine.RemoteModelConfig
+import com.aven.ai.engine.validationError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -25,17 +28,19 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 
 /**
- * Base engine for OpenAI-compatible chat-completions APIs (OpenCode Zen,
- * OpenRouter, Z.AI). Streams SSE deltas; maps HTTP, provider, and network
- * errors into honest [AiChatException]s. Retries only transient HTTP 429s
- * with backoff; never falls back to another provider silently.
+ * The single remote engine for user-configured OpenAI-compatible gateways.
+ * Streams SSE deltas and maps HTTP/provider/network failures into honest,
+ * user-presentable [AiChatException]s with an [AiError] category. Retries only
+ * transient HTTP 429s with backoff; never falls back to another provider.
  */
-abstract class OpenAiCompatibleEngine(
-    override val id: String,
-    override val displayName: String,
-    private val baseUrl: String,
+class OpenAiCompatibleEngine(
+    private val config: RemoteModelConfig,
     private val apiKey: () -> String?,
     private val client: OkHttpClient,
     private val maxRateLimitRetries: Int = 3,
@@ -43,21 +48,25 @@ abstract class OpenAiCompatibleEngine(
     private val maxDisconnectRetries: Int = 1
 ) : AiChatEngine {
 
-    protected abstract val providerName: String
-    protected abstract val modelId: String
+    override val id: String = "remote/${config.id}"
+    override val displayName: String = config.modelId
+    override val providerId: String = config.id
+    override val modelId: String = config.modelId
+
+    private val providerName: String get() = config.providerName
+    private val baseUrl: String get() = config.baseUrl
 
     override fun generate(request: GenerateRequest): Flow<String> = flow {
-        val key = apiKey()
+        config.validationError()?.let { throw AiChatException(it, error = AiError.INVALID_CONFIGURATION) }
+
+        val key = apiKey()?.takeIf { it.isNotBlank() }
             ?: throw AiChatException(
-                when (providerName) {
-                    "OpenRouter" -> "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter an API key in Settings → API Keys."
-                    "NVIDIA NIM" -> "No NVIDIA NIM API key configured. Add NVIDIA_NIM_API_KEY to .env or enter an API key in Settings → API Keys."
-                    else -> "No $providerName API key. Add it in Settings → API Keys."
-                }
+                "No API key configured for $providerName. Add it in Settings → Online models.",
+                error = AiError.INVALID_CONFIGURATION
             )
 
         val httpRequest = Request.Builder()
-            .url("$baseUrl/chat/completions")
+            .url("${baseUrl.trimEnd('/')}/chat/completions")
             .header("Authorization", "Bearer $key")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
@@ -88,9 +97,7 @@ abstract class OpenAiCompatibleEngine(
                     delay(rateLimitBackoffMs * disconnectAttempt)
                     continue
                 }
-                throw AiChatException(
-                    "Couldn't reach $providerName. Check your internet connection and try again."
-                )
+                throw networkError(e)
             }
 
             response.use {
@@ -99,7 +106,10 @@ abstract class OpenAiCompatibleEngine(
                     var sawDone = false
                     try {
                         val source = it.body?.source()
-                            ?: throw AiChatException("Empty response from $providerName.")
+                            ?: throw AiChatException(
+                                "The provider returned an empty response.",
+                                error = AiError.EMPTY_RESPONSE
+                            )
 
                         SseParser.parse(source) { event ->
                             currentCoroutineContext().ensureActive()
@@ -108,7 +118,9 @@ abstract class OpenAiCompatibleEngine(
                                 return@parse
                             }
                             val (delta, error) = DeltaExtractor.extractContentAndError(event)
-                            if (error != null) throw AiChatException(error)
+                            if (error != null) {
+                                throw AiChatException(error, error = AiError.PROVIDER_ERROR)
+                            }
                             if (!delta.isNullOrEmpty()) {
                                 currentCoroutineContext().ensureActive()
                                 emittedAny = true
@@ -123,8 +135,8 @@ abstract class OpenAiCompatibleEngine(
                                 return@use
                             }
                             throw AiChatException(
-                                "Couldn't reach $providerName — the connection was interrupted. " +
-                                    "Check your internet connection and try again."
+                                "Connection lost while generating. Check your internet connection and try again.",
+                                error = AiError.STREAM_INTERRUPTED
                             )
                         }
                         return@flow
@@ -135,8 +147,9 @@ abstract class OpenAiCompatibleEngine(
                             return@use
                         }
                         throw AiChatException(
-                            "Couldn't reach $providerName — the connection was interrupted. " +
-                                "Check your internet connection and try again."
+                            "Connection lost while generating. Check your internet connection and try again.",
+                            cause = e,
+                            error = AiError.STREAM_INTERRUPTED
                         )
                     }
                 }
@@ -147,8 +160,12 @@ abstract class OpenAiCompatibleEngine(
                     return@use
                 }
 
-                val message = extractErrorMessage(it.body?.string())
-                throw AiChatException(message ?: mapHttpError(it.code))
+                val body = it.body?.string()
+                val message = extractErrorMessage(body)
+                throw AiChatException(
+                    message ?: mapHttpError(it.code),
+                    error = classifyHttp(it.code, body)
+                )
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -210,12 +227,55 @@ abstract class OpenAiCompatibleEngine(
         specific?.takeIf { it.isNotBlank() }
     }.getOrNull()
 
+    /** Category for a non-2xx response, refined by known context-limit wording. */
+    private fun classifyHttp(code: Int, body: String?): AiError = when {
+        code == 400 && looksLikeContextLimit(body) -> AiError.CONTEXT_LIMIT
+        code == 400 -> AiError.BAD_REQUEST
+        code == 401 -> AiError.AUTHENTICATION_FAILED
+        code == 403 -> AiError.ACCESS_DENIED
+        code == 404 -> AiError.MODEL_NOT_FOUND
+        code == 429 -> AiError.RATE_LIMITED
+        code in 500..599 -> AiError.PROVIDER_ERROR
+        else -> AiError.UNKNOWN
+    }
+
+    private fun looksLikeContextLimit(body: String?): Boolean {
+        val text = body?.lowercase() ?: return false
+        return listOf("context length", "context_length", "too long", "maximum context", "token limit", "max_tokens")
+            .any { it in text }
+    }
+
     private fun mapHttpError(code: Int): String = when (code) {
-        401, 403 -> "Authentication failed for $providerName. Check the API key in Settings → API Keys."
-        404 -> "$providerName could not find the model. Try a different model."
-        429 -> "$providerName is rate-limited. Wait a moment and try again."
-        in 500..599 -> "$providerName is having trouble. Try again shortly."
-        else -> "$providerName request failed ($code)."
+        400 -> "The provider rejected the request. Check the model settings."
+        401 -> "Authentication failed. The API key was rejected by the provider."
+        403 -> "Access denied. This API key doesn't have permission for this model."
+        404 -> "Model not found. The provider couldn't find this model. Check the Model ID."
+        429 -> "Rate limit reached. The provider is temporarily limiting requests. Wait a moment and try again."
+        in 500..599 -> "Provider unavailable. The model gateway returned a server error. Try again shortly."
+        else -> "The request failed ($code). Try again."
+    }
+
+    private fun networkError(e: IOException): AiChatException = when (e) {
+        is UnknownHostException -> AiChatException(
+            "Connection failed. Aven couldn't reach the model gateway. Check the gateway URL and your internet connection.",
+            cause = e, error = AiError.NETWORK_ERROR
+        )
+        is ConnectException -> AiChatException(
+            "Connection failed. Aven couldn't reach the model gateway.",
+            cause = e, error = AiError.NETWORK_ERROR
+        )
+        is SocketTimeoutException -> AiChatException(
+            "The request timed out. The model gateway took too long to respond.",
+            cause = e, error = AiError.TIMEOUT
+        )
+        is SSLException -> AiChatException(
+            "Secure connection failed. Check the gateway URL and certificate.",
+            cause = e, error = AiError.SSL_ERROR
+        )
+        else -> AiChatException(
+            "Connection failed. Aven couldn't reach the model gateway. Check the gateway URL and your internet connection.",
+            cause = e, error = AiError.NETWORK_ERROR
+        )
     }
 
     private companion object {

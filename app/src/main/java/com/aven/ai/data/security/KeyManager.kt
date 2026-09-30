@@ -1,17 +1,13 @@
 package com.aven.ai.data.security
 
 import android.content.Context
-import com.aven.ai.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 
 /**
- * Secure storage for API keys. Values are AES-GCM encrypted under a
- * Keystore-held master key and persisted in private SharedPreferences.
- *
- * Debug builds seed their defaults from BuildConfig (sourced from the
- * gitignored .env) on first launch. Release builds never carry
- * defaults, so seeding is a no-op there.
+ * Secure storage for API credentials, keyed by an arbitrary string id (each
+ * user-configured online model owns its own id). Values are AES-GCM encrypted
+ * under a Keystore-held master key and persisted in private SharedPreferences.
  */
 class KeyManager(context: Context) {
 
@@ -21,69 +17,30 @@ class KeyManager(context: Context) {
     )
     private val crypto = KeystoreCrypto()
 
-    /** Emitted whenever a key is written, cleared, or seeded. */
+    /** Emitted whenever a key is written or cleared. */
     private val _changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val changes: SharedFlow<Unit> = _changes
 
-    /**
-     * Seeds the debug default keys if they are missing. Called on app start.
-     */
-    fun seedDefaultKeysIfNeeded() {
-        var seededAny = false
-
-        if (BuildConfig.DEBUG && BuildConfig.DEFAULT_ZEN_API_KEY.isNotBlank() && !hasKey(Provider.ZEN)) {
-            writeKey(Provider.ZEN, BuildConfig.DEFAULT_ZEN_API_KEY)
-            seededAny = true
-        }
-        val openRouterSeed = BuildConfig.OPENROUTER_API_KEY.ifBlank { BuildConfig.DEFAULT_OPENROUTER_API_KEY }
-        if (BuildConfig.DEBUG && openRouterSeed.isNotBlank() && !hasKey(Provider.OPENROUTER)) {
-            writeKey(Provider.OPENROUTER, openRouterSeed)
-            seededAny = true
-        }
-        if (BuildConfig.DEBUG && BuildConfig.DEFAULT_ZAI_API_KEY.isNotBlank() && !hasKey(Provider.ZAI)) {
-            writeKey(Provider.ZAI, BuildConfig.DEFAULT_ZAI_API_KEY)
-            seededAny = true
-        }
-        val nimSeed = BuildConfig.NVIDIA_NIM_API_KEY.ifBlank { BuildConfig.DEFAULT_NVIDIA_NIM_API_KEY }
-        if (BuildConfig.DEBUG && nimSeed.isNotBlank() && !hasKey(Provider.NVIDIA_NIM)) {
-            writeKey(Provider.NVIDIA_NIM, nimSeed)
-            seededAny = true
-        }
-
-        if (seededAny) {
-            prefs.edit().putBoolean(PREF_SEEDED, true).apply()
-            _changes.tryEmit(Unit)
-        }
-    }
-
-    fun writeKey(provider: Provider, key: String) {
-        prefs.edit().putString(prefKey(provider), crypto.encrypt(key)).apply()
+    fun writeKey(id: String, key: String) {
+        prefs.edit().putString(prefKey(id), crypto.encrypt(key)).apply()
         _changes.tryEmit(Unit)
     }
 
-    fun readKey(provider: Provider): String? {
-        val payload = prefs.getString(prefKey(provider), null) ?: return null
+    fun readKey(id: String): String? {
+        val payload = prefs.getString(prefKey(id), null) ?: return null
         return runCatching { crypto.decrypt(payload) }.getOrNull()
     }
 
-    fun hasKey(provider: Provider): Boolean = prefs.contains(prefKey(provider))
+    fun hasKey(id: String): Boolean = prefs.contains(prefKey(id))
 
-    fun clearKey(provider: Provider) {
-        prefs.edit().remove(prefKey(provider)).apply()
+    fun clearKey(id: String) {
+        prefs.edit().remove(prefKey(id)).apply()
         _changes.tryEmit(Unit)
     }
 
-    private fun prefKey(provider: Provider): String = "key_${provider.name.lowercase()}"
-
-    enum class Provider {
-        ZEN,
-        OPENROUTER,
-        ZAI,
-        NVIDIA_NIM
-    }
+    private fun prefKey(id: String): String = "key_$id"
 
     private companion object {
         const val PREFS_NAME = "aven_secure_keys"
-        const val PREF_SEEDED = "seeded"
     }
 }

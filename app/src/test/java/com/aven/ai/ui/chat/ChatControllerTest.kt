@@ -52,6 +52,17 @@ private class SlowEngine : AiChatEngine {
     }
 }
 
+/** Streams a partial reply, then fails mid-stream. */
+private class PartialThenFailEngine : AiChatEngine {
+    override val id = "partial-fail"
+    override val displayName = "PartialFail"
+    override fun generate(request: GenerateRequest): Flow<String> = flow {
+        emit("Kept text")
+        withContext(Dispatchers.IO) { Thread.sleep(150) }
+        throw AiChatException("Connection lost while generating.")
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -200,6 +211,26 @@ class ChatControllerTest {
         assertEquals(0, runBlocking { dao.visibleConversationCount() })
         val conversationId = runBlocking { dao.getConversation(1L) }!!.id
         assertTrue(runBlocking { dao.getConversation(conversationId) }!!.isPrivate)
+    }
+
+    @Test
+    fun `error mid-stream keeps the partial reply and surfaces the failure`() {
+        val controller = controller(engine = PartialThenFailEngine())
+        controller.start(0L, false)
+        controller.send("Hi")
+
+        settle {
+            controller.uiState.value.lastError != null &&
+                !controller.uiState.value.isGenerating
+        }
+
+        val conversationId = runBlocking { dao.observeVisibleConversations().first() }.first().id
+        val messages = persistedMessages(conversationId)
+        assertEquals(2, messages.size)
+        assertEquals("user", messages[0].role)
+        assertEquals("assistant", messages[1].role)
+        assertEquals("Kept text", messages[1].content)
+        assertEquals("Connection lost while generating.", controller.uiState.value.lastError)
     }
 
     @Test

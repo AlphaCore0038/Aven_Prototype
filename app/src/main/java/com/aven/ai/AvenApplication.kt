@@ -16,6 +16,5 @@ class AvenApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        container.keyManager.seedDefaultKeysIfNeeded()
     }
 }

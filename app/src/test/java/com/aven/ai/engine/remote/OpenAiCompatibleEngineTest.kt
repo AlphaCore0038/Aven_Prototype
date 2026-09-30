@@ -2,7 +2,9 @@ package com.aven.ai.engine.remote
 
 import com.aven.ai.data.local.MessageEntity
 import com.aven.ai.engine.AiChatException
+import com.aven.ai.engine.AiError
 import com.aven.ai.engine.GenerateRequest
+import com.aven.ai.engine.RemoteModelConfig
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -35,20 +37,21 @@ class OpenAiCompatibleEngineTest {
 
     private fun engine(
         modelId: String = "deepseek-v4-flash",
+        baseUrl: String = server.url("/v1").toString().trimEnd('/'),
         maxRateLimitRetries: Int = 3,
         rateLimitBackoffMs: Long = 1
-    ) = object : OpenAiCompatibleEngine(
-        id = "test/$modelId",
-        displayName = "Test",
-        baseUrl = server.url("/v1").toString().trimEnd('/'),
+    ) = OpenAiCompatibleEngine(
+        config = RemoteModelConfig(
+            id = "test-id",
+            providerName = "TestProvider",
+            baseUrl = baseUrl,
+            modelId = modelId
+        ),
         apiKey = { apiKey },
         client = client,
         maxRateLimitRetries = maxRateLimitRetries,
         rateLimitBackoffMs = rateLimitBackoffMs
-    ) {
-        override val providerName = "TestProvider"
-        override val modelId = modelId
-    }
+    )
 
     private fun request(history: List<MessageEntity> = emptyList()) = GenerateRequest(
         conversationId = 1L,
@@ -98,6 +101,7 @@ class OpenAiCompatibleEngineTest {
         val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
         assertTrue(error!!.message!!.contains("API key"))
+        assertEquals(AiError.INVALID_CONFIGURATION, (error as AiChatException).error)
         assertEquals(0, server.requestCount)
     }
 
@@ -122,6 +126,50 @@ class OpenAiCompatibleEngineTest {
         val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
         assertTrue(error!!.message!!.contains("Authentication failed"))
+        assertEquals(AiError.AUTHENTICATION_FAILED, (error as AiChatException).error)
+    }
+
+    @Test
+    fun `403 maps to access denied`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(403).setBody("nope"))
+        val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
+        assertEquals(AiError.ACCESS_DENIED, (error as AiChatException).error)
+        assertTrue(error!!.message!!.contains("Access denied"))
+    }
+
+    @Test
+    fun `404 maps to model not found`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(404).setBody("missing"))
+        val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
+        assertEquals(AiError.MODEL_NOT_FOUND, (error as AiChatException).error)
+        assertTrue(error!!.message!!.contains("Model not found"))
+    }
+
+    @Test
+    fun `400 maps to bad request`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(400).setBody("bad input"))
+        val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
+        assertEquals(AiError.BAD_REQUEST, (error as AiChatException).error)
+    }
+
+    @Test
+    fun `400 with context-limit wording maps to context limit`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(400).setBody(
+                """{"error":{"message":"This model's maximum context length is 4096 tokens"}}"""
+            )
+        )
+        val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
+        assertEquals(AiError.CONTEXT_LIMIT, (error as AiChatException).error)
+        assertTrue(error!!.message!!.contains("maximum context length"))
+    }
+
+    @Test
+    fun `5xx maps to provider error`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(500).setBody("boom"))
+        val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
+        assertEquals(AiError.PROVIDER_ERROR, (error as AiChatException).error)
+        assertTrue(error!!.message!!.contains("Provider unavailable"))
     }
 
     @Test
@@ -129,7 +177,8 @@ class OpenAiCompatibleEngineTest {
         repeat(4) { server.enqueue(MockResponse().setResponseCode(429)) }
         val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
-        assertTrue(error!!.message!!.contains("rate-limited"))
+        assertTrue(error!!.message!!.contains("Rate limit"))
+        assertEquals(AiError.RATE_LIMITED, (error as AiChatException).error)
         assertEquals(4, server.requestCount)
     }
 
@@ -151,19 +200,38 @@ class OpenAiCompatibleEngineTest {
         dead.start()
         val deadUrl = dead.url("/v1").toString().trimEnd('/')
         dead.shutdown()
-        val broken = object : OpenAiCompatibleEngine(
-            id = "test/broken",
-            displayName = "Test",
-            baseUrl = deadUrl,
+        val broken = OpenAiCompatibleEngine(
+            config = RemoteModelConfig(
+                id = "broken",
+                providerName = "TestProvider",
+                baseUrl = deadUrl,
+                modelId = "x"
+            ),
             apiKey = { "k" },
             client = client
-        ) {
-            override val providerName = "TestProvider"
-            override val modelId = "x"
-        }
+        )
         val error = runCatching { broken.generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
         assertTrue(error!!.message!!.contains("reach"))
+        assertEquals(AiError.NETWORK_ERROR, (error as AiChatException).error)
+    }
+
+    @Test
+    fun `malformed gateway url fails before any request`() = runTest {
+        val broken = OpenAiCompatibleEngine(
+            config = RemoteModelConfig(
+                id = "bad-url",
+                providerName = "TestProvider",
+                baseUrl = "not-a-url",
+                modelId = "x"
+            ),
+            apiKey = { "k" },
+            client = client
+        )
+        val error = runCatching { broken.generate(request()).toList() }.exceptionOrNull()
+        assertTrue(error is AiChatException)
+        assertEquals(AiError.INVALID_CONFIGURATION, (error as AiChatException).error)
+        assertEquals(0, server.requestCount)
     }
 
     @Test
@@ -178,7 +246,7 @@ class OpenAiCompatibleEngineTest {
         }
         val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
-        assertTrue(error!!.message!!.contains("interrupted"))
+        assertEquals(AiError.STREAM_INTERRUPTED, (error as AiChatException).error)
         assertEquals(2, server.requestCount)
     }
 
@@ -218,6 +286,7 @@ class OpenAiCompatibleEngineTest {
         val error = runCatching { engine().generate(request()).toList() }.exceptionOrNull()
         assertTrue(error is AiChatException)
         assertEquals("Insufficient credits", error!!.message)
+        assertEquals(AiError.PROVIDER_ERROR, (error as AiChatException).error)
     }
 
     @Test

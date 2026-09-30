@@ -19,4 +19,12 @@ object LlamaNative {
     external fun nativeUnload(handle: Long)
     external fun nativeCancel()
     external fun nativeGenerate(handle: Long, prompt: String, listener: LlamaTokenListener): String
+    external fun nativeGenerateChat(
+        handle: Long,
+        system: String,
+        historyRoles: Array<String>,
+        historyContents: Array<String>,
+        prompt: String,
+        listener: LlamaTokenListener
+    ): String
 }

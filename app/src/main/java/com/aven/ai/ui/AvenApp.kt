@@ -50,6 +50,17 @@ fun AvenApp() {
     val conversations by app.container.chatDao.observeVisibleConversations()
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
+    val profile by app.container.userProfileRepository.profile
+        .collectAsStateWithLifecycle(
+            initialValue = com.aven.ai.data.settings.UserProfileRepository.UserProfile()
+        )
+
+    val settings by app.container.settingsRepository.settings
+        .collectAsStateWithLifecycle(
+            initialValue = com.aven.ai.data.settings.SettingsRepository.AppSettings()
+        )
+    val dark = settings.theme != com.aven.ai.data.settings.SettingsRepository.AppSettings.THEME_LIGHT
+
     fun closeDrawer() {
         scope.launch { drawerState.close() }
     }
@@ -68,6 +79,8 @@ fun AvenApp() {
             AvenDrawer(
                 pinnedChats = conversations.filter { it.isPinned },
                 recentChats = conversations.filter { !it.isPinned }.take(MAX_RECENT_CHATS),
+                userInitial = profile.name.trim().take(1).uppercase(),
+                dark = dark,
                 onNewChat = { navigateFresh(Destinations.chat(false)) },
                 onOpenPrivate = { navigateFresh(Destinations.chat(true)) },
                 onOpenSettings = {

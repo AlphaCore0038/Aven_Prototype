@@ -5,6 +5,7 @@ import com.aven.ai.data.local.AvenDatabase
 import com.aven.ai.data.network.ConnectivityMonitor
 import com.aven.ai.data.network.HttpClientFactory
 import com.aven.ai.data.security.KeyManager
+import com.aven.ai.data.settings.RemoteModelRepository
 import com.aven.ai.data.settings.SettingsRepository
 import com.aven.ai.data.settings.UserProfileRepository
 import com.aven.ai.engine.AiChatEngine
@@ -43,6 +44,9 @@ class AppContainer(context: Context) {
     val keyManager: KeyManager by lazy { KeyManager(applicationContext) }
 
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(applicationContext) }
+
+    /** User-configured online models (non-secret fields; keys live in KeyManager). */
+    val remoteModelRepository: RemoteModelRepository by lazy { RemoteModelRepository(applicationContext) }
 
     val userProfileRepository: UserProfileRepository by lazy { UserProfileRepository(applicationContext) }
 
@@ -95,7 +99,14 @@ class AppContainer(context: Context) {
     private val httpDownloader: ModelDownloader by lazy { OkHttpModelDownloader(httpClient) }
 
     val modelRegistry: ModelRegistry by lazy {
-        ModelRegistry(keyManager, httpClient, settingsRepository, modelManager, gemmaModelManager)
+        ModelRegistry(
+            keyManager = keyManager,
+            client = httpClient,
+            settingsRepository = settingsRepository,
+            remoteModels = remoteModelRepository,
+            modelManager = modelManager,
+            gemmaManager = gemmaModelManager
+        )
     }
 
     init {

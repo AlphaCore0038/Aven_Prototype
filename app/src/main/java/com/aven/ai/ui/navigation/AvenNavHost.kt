@@ -9,7 +9,8 @@ import androidx.navigation.navArgument
 import com.aven.ai.AvenApplication
 import com.aven.ai.ui.about.AboutScreen
 import com.aven.ai.ui.chat.ChatScreen
-import com.aven.ai.ui.settings.ApiKeysScreen
+import com.aven.ai.ui.settings.ModelEditScreen
+import com.aven.ai.ui.settings.ModelsScreen
 import com.aven.ai.ui.settings.SettingsScreen
 import com.aven.ai.ui.settings.UserDetailsScreen
 
@@ -73,8 +74,36 @@ fun AvenNavHost(
                 chatDao = app.container.chatDao,
                 onBack = { navController.popBackStack() },
                 onOpenAbout = { navController.navigate(Destinations.ABOUT) },
-                onOpenApiKeys = { navController.navigate(Destinations.API_KEYS) },
+                onOpenModels = { navController.navigate(Destinations.MODELS) },
                 onOpenUserDetails = { navController.navigate(Destinations.USER_DETAILS) }
+            )
+        }
+
+        composable(Destinations.MODELS) {
+            ModelsScreen(
+                onBack = { navController.popBackStack() },
+                onAdd = { navController.navigate(Destinations.modelEdit()) },
+                onEdit = { id -> navController.navigate(Destinations.modelEdit(id)) }
+            )
+        }
+
+        composable(
+            route = "${Destinations.MODEL_EDIT}?${Destinations.ARG_MODEL_ID}={${Destinations.ARG_MODEL_ID}}",
+            arguments = listOf(
+                navArgument(Destinations.ARG_MODEL_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val app = androidx.compose.ui.platform.LocalContext.current
+                .applicationContext as AvenApplication
+            ModelEditScreen(
+                remoteModelRepository = app.container.remoteModelRepository,
+                keyManager = app.container.keyManager,
+                httpClient = app.container.httpClient,
+                configId = backStackEntry.arguments?.getString(Destinations.ARG_MODEL_ID).orEmpty(),
+                onDone = { navController.popBackStack() }
             )
         }
 
@@ -83,15 +112,6 @@ fun AvenNavHost(
                 .applicationContext as AvenApplication
             UserDetailsScreen(
                 userProfileRepository = app.container.userProfileRepository,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Destinations.API_KEYS) {
-            val app = androidx.compose.ui.platform.LocalContext.current
-                .applicationContext as AvenApplication
-            ApiKeysScreen(
-                keyManager = app.container.keyManager,
                 onBack = { navController.popBackStack() }
             )
         }

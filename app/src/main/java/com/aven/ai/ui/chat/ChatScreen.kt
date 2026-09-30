@@ -13,12 +13,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,9 +44,9 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -49,6 +54,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.aven.ai.ui.theme.RefPalette
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,18 +76,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aven.ai.R
 import com.aven.ai.data.settings.SettingsRepository
 import com.aven.ai.engine.AiModelOption
 import com.aven.ai.engine.EngineKind
-import com.aven.ai.engine.ResponseMode
 import com.aven.ai.engine.local.LocalModelState
 import com.aven.ai.ui.components.MessageComposer
+import com.aven.ai.ui.theme.rememberRefPalette
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -89,7 +97,7 @@ import kotlinx.coroutines.launch
  * The main chat screen. Owns the ChatViewModel and renders the persisted
  * conversation from Room, the live streaming reply, and the composer.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     isPrivate: Boolean,
@@ -133,31 +141,50 @@ fun ChatScreen(
     }
 
     val itemCount = state.messages.size + if (state.isGenerating) 1 else 0
+    // ChatGPT-style follow: pin to the latest content while generating unless
+    // the user detached by scrolling up (autoFollow=false). No canScrollForward
+    // gate here — that check deadlocked follow, since a growing streaming item
+    // always leaves content below the viewport on exactly the frames that must
+    // scroll. Detachment is already tracked by autoFollow above.
     LaunchedEffect(itemCount, state.streamingText.length) {
         val target = itemCount - 1
         if (target <= 0) return@LaunchedEffect
         if (!autoFollow || listState.isScrollInProgress) return@LaunchedEffect
-        // Viewport check: only follow when already at bottom. A single-item
-        // list (new chat, only streaming) has no scroll, so skip.
-        if (listState.canScrollForward) return@LaunchedEffect
-        listState.scrollToItem(target)
+        val clamped = target.coerceAtMost(listState.layoutInfo.totalItemsCount - 1)
+        if (clamped < 0) return@LaunchedEffect
+        listState.scrollToItem(clamped)
     }
+    // Floating "back to bottom" pill (ChatGPT ↓): visible whenever the list
+    // has content below the viewport, generating or idle. Direct read (not
+    // remember+derivedStateOf): itemCount is a plain Int, so capturing it in a
+    // remembered lambda would freeze the first-composition value (0, before
+    // Room emits) and pin the pill invisible forever. canScrollForward only
+    // notifies on true/false flips, so this stays cheap.
+    val showJumpToBottom = itemCount > 0 && listState.canScrollForward
 
-    val currentModelLabel = remember(settings, localModelState) {
-        val selected = viewModel.models.firstOrNull {
+    val models by viewModel.models.collectAsStateWithLifecycle()
+    val dark = settings.theme != SettingsRepository.AppSettings.THEME_LIGHT
+    val ref = rememberRefPalette(dark)
+
+    val currentModelLabel = remember(models, settings, localModelState) {
+        val selected = models.firstOrNull {
             it.providerId == settings.defaultProviderId && it.modelId == settings.defaultModelId
         }
-        val actual = selected ?: viewModel.models.firstOrNull { model ->
+        val actual = selected ?: models.firstOrNull { model ->
             if (model.providerId == "local") localModelState is LocalModelState.Ready else true
-        } ?: viewModel.models.first()
+        } ?: models.firstOrNull()
 
-        actual.displayName
+        actual?.displayName ?: "No model selected"
     }
+
+    // ponytail: safeDrawing.max(ime, nav) is single source; footer hidden when IME visible
+    // to keep composer 8dp above keyboard instead of footer-height above.
+    val isImeVisible = WindowInsets.isImeVisible
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .imePadding()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
     ) {
         ChatTopBar(
             isPrivate = isPrivate,
@@ -189,7 +216,30 @@ fun ChatScreen(
                     }
                 }
             } else {
-                WelcomeView(isPrivate = isPrivate, userName = userName)
+                WelcomeView(isPrivate = isPrivate, userName = userName, dark = dark)
+            }
+            if (showJumpToBottom) {
+                IconButton(
+                    onClick = {
+                        autoFollow = true
+                        scope.launch {
+                            val last = (listState.layoutInfo.totalItemsCount - 1)
+                                .coerceAtLeast(0)
+                            listState.animateScrollToItem(last)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                        .size(48.dp)
+                        .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Scroll to latest messages",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
 
@@ -215,36 +265,33 @@ fun ChatScreen(
             focusRequester = focusRequester,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            isPrivate = isPrivate,
+            dark = dark
         )
 
-        Text(
-            text = stringResource(R.string.footer_disclaimer),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(bottom = 10.dp)
-        )
+        if (!isImeVisible) {
+            Text(
+                text = stringResource(R.string.footer_disclaimer),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp)
+            )
+        }
     }
 
     if (modelSheetOpen) {
-        val selectedVariant = try {
-            ResponseMode.valueOf(settings.responseMode)
-        } catch (_: Exception) {
-            ResponseMode.MEDIUM
-        }
         ModelSelectionSheet(
-            models = viewModel.models,
-            current = viewModel.models.firstOrNull {
+            models = models,
+            current = models.firstOrNull {
                 it.providerId == settings.defaultProviderId && it.modelId == settings.defaultModelId
             },
             llamaState = localModelState,
             gemmaState = gemmaModelState,
-            selectedVariant = selectedVariant,
-            onSelectVariant = { viewModel.setResponseMode(it) },
+            dark = dark,
             onPick = { option ->
                 if (state.isGenerating) return@ModelSelectionSheet
                 scope.launch { viewModel.selectModel(option) }
@@ -261,14 +308,6 @@ fun ChatScreen(
     }
 }
 
-private fun providerName(providerId: String): String = when (providerId) {
-    "zen" -> "Zen"
-    "openrouter" -> "OpenRouter"
-    "zai" -> "Z.AI"
-    "local" -> "On-device"
-    else -> providerId
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelSelectionSheet(
@@ -276,8 +315,7 @@ private fun ModelSelectionSheet(
     current: AiModelOption?,
     llamaState: LocalModelState,
     gemmaState: LocalModelState,
-    selectedVariant: ResponseMode,
-    onSelectVariant: (ResponseMode) -> Unit,
+    dark: Boolean,
     onPick: (AiModelOption) -> Unit,
     onInstallFor: (String) -> Unit,
     onCancelFor: (String) -> Unit,
@@ -285,80 +323,100 @@ private fun ModelSelectionSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val ref = rememberRefPalette(dark)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        dragHandle = null,
+        containerColor = ref.sheetBg,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 12.dp)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(top = 4.dp, bottom = 20.dp)
             ) {
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(48.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .padding(4.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 Text(
-                    text = "Model-Selection",
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = "Select model",
+                    fontSize = 17.sp,
+                    fontFamily = FontFamily.Default,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.width(48.dp))
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
 
-            VariantDropdown(
-                selected = selectedVariant,
-                onSelect = onSelectVariant
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            models.forEach { option ->
-                val stateForOption = when (option.modelId) {
-                    com.aven.ai.engine.local.LocalEngine.GEMMA_ID -> gemmaState
-                    com.aven.ai.engine.local.LocalEngine.MODEL_ID -> llamaState
-                    else -> if (option.kind == EngineKind.LOCAL) llamaState else LocalModelState.Ready
-                }
-                ModelOptionRow(
-                    option = option,
-                    isCurrent = option.providerId == current?.providerId &&
-                        option.modelId == current?.modelId,
-                    localModelState = stateForOption,
-                    onClick = {
-                        if (option.kind == EngineKind.LOCAL &&
-                            stateForOption !is LocalModelState.Ready
-                        ) {
-                            // no-op until installed
-                        } else {
-                            onPick(option)
-                        }
-                    },
-                    onInstallLocal = { onInstallFor(option.modelId) },
-                    onCancelLocalDownload = { onCancelFor(option.modelId) },
-                    onRemoveLocal = { onRemoveFor(option.modelId) }
+            if (models.none { it.kind == EngineKind.REMOTE }) {
+                Text(
+                    text = "No online models configured. Add one in Settings → Online models.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = ref.rowBg,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    models.forEachIndexed { index, option ->
+                        val stateForOption = when (option.modelId) {
+                            com.aven.ai.engine.local.LocalEngine.GEMMA_ID -> gemmaState
+                            com.aven.ai.engine.local.LocalEngine.MODEL_ID -> llamaState
+                            else -> if (option.kind == EngineKind.LOCAL) llamaState else LocalModelState.Ready
+                        }
+                        ModelOptionRow(
+                            option = option,
+                            isCurrent = option.providerId == current?.providerId &&
+                                option.modelId == current?.modelId,
+                            localModelState = stateForOption,
+                            dark = dark,
+                            onClick = {
+                                if (option.kind == EngineKind.LOCAL &&
+                                    stateForOption !is LocalModelState.Ready
+                                ) {
+                                    // no-op until installed
+                                } else {
+                                    onPick(option)
+                                }
+                            },
+                            onInstallLocal = { onInstallFor(option.modelId) },
+                            onCancelLocalDownload = { onCancelFor(option.modelId) },
+                            onRemoveLocal = { onRemoveFor(option.modelId) }
+                        )
+                        if (index < models.lastIndex) {
+                            HorizontalDivider(
+                                color = ref.rowDivider,
+                                thickness = 1.dp
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -369,6 +427,7 @@ private fun ModelOptionRow(
     option: AiModelOption,
     isCurrent: Boolean,
     localModelState: LocalModelState,
+    dark: Boolean,
     onClick: () -> Unit,
     onInstallLocal: () -> Unit,
     onCancelLocalDownload: () -> Unit,
@@ -376,34 +435,45 @@ private fun ModelOptionRow(
 ) {
     val isLocal = option.kind == EngineKind.LOCAL
     var confirmRemove by remember { mutableStateOf(false) }
+    val ref = rememberRefPalette(dark)
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = if (isCurrent) BorderStroke(2.dp, MaterialTheme.colorScheme.outline) else null,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)
+        shape = RoundedCornerShape(0.dp),
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(start = 16.dp, top = 14.dp, end = 8.dp, bottom = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = option.displayName,
-                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.Default,
+                        fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = if (isLocal) localModelDescription(localModelState) else option.description,
-                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Default,
+                        fontWeight = FontWeight.Normal,
                         color = if (localModelState is LocalModelState.Failed) {
                             MaterialTheme.colorScheme.error
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            ref.descGray
                         },
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (isCurrent && !isLocal) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected model",
+                        tint = RefPalette.CheckBlue,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 if (isLocal) {
@@ -501,104 +571,19 @@ private fun LocalModelStateAction(
     }
 }
 
+/** Template hamburger mark: three 2dp bars (20/20/14dp) with 5dp gaps. */
 @Composable
-private fun VariantDropdown(
-    selected: ResponseMode,
-    onSelect: (ResponseMode) -> Unit
+private fun MenuLine(
+    width: androidx.compose.ui.unit.Dp,
+    color: Color
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Variant",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Surface(
-                onClick = { expanded = !expanded },
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = selected.name.lowercase().replaceFirstChar { it.titlecase() },
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-        if (expanded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) {
-                ResponseMode.entries.forEach { mode ->
-                    VariantOption(
-                        label = mode.name.lowercase().replaceFirstChar { it.titlecase() },
-                        selected = mode == selected,
-                        onSelect = {
-                            onSelect(mode)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VariantOption(
-    label: String,
-    selected: Boolean,
-    onSelect: () -> Unit
-) {
-    Surface(
-        onClick = onSelect,
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-        border = if (selected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline) else null,
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
+            .width(width)
+            .height(2.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(color)
+    )
 }
 
 @Composable
@@ -612,8 +597,8 @@ private fun ChatTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .height(72.dp)
-            .padding(horizontal = 16.dp),
+            .height(56.dp)
+            .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         IconButton(
@@ -621,12 +606,25 @@ private fun ChatTopBar(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(48.dp)
-                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
         ) {
-            Icon(
-                imageVector = Icons.Filled.Menu,
-                contentDescription = "Open menu",
-                tint = MaterialTheme.colorScheme.onSurface
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                MenuLine(width = 20.dp, color = MaterialTheme.colorScheme.onSurface)
+                MenuLine(width = 20.dp, color = MaterialTheme.colorScheme.onSurface)
+                MenuLine(width = 14.dp, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+
+        if (isPrivate) {
+            Text(
+                text = "Incognito chat",
+                fontSize = 17.sp,
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Center)
             )
         }
 
@@ -636,7 +634,6 @@ private fun ChatTopBar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .size(48.dp)
-                    .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.private_chat_icon),

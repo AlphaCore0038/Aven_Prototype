@@ -15,18 +15,52 @@ data class GenerateRequest(
     val isPrivate: Boolean
 )
 
+/**
+ * A user-presentable category for a generation failure. Kept deliberately
+ * small: it exists so the UI can explain what happened without exposing
+ * raw HTTP codes or credentials.
+ */
+enum class AiError {
+    INVALID_CONFIGURATION,
+    AUTHENTICATION_FAILED,
+    ACCESS_DENIED,
+    MODEL_NOT_FOUND,
+    BAD_REQUEST,
+    RATE_LIMITED,
+    PROVIDER_ERROR,
+    NETWORK_ERROR,
+    TIMEOUT,
+    SSL_ERROR,
+    STREAM_INTERRUPTED,
+    EMPTY_RESPONSE,
+    INVALID_RESPONSE,
+    CONTEXT_LIMIT,
+    UNKNOWN
+}
+
 /** Raised when generation fails for a concrete, user-presentable reason. */
-class AiChatException(message: String, cause: Throwable? = null) : Exception(message, cause)
+class AiChatException(
+    message: String,
+    cause: Throwable? = null,
+    val error: AiError = AiError.UNKNOWN
+) : Exception(message, cause)
 
 /**
  * The generation capability behind a chat. Implementations stream text deltas
  * and must cancel promptly when their collecting coroutine is cancelled.
  *
- * Phase 3 ships [UnavailableEngine]; local (llama.cpp) and remote (Zen /
- * OpenRouter) engines replace it in Phase 4/5.
+ * [providerId] and [modelId] are explicit so a model's identity never depends
+ * on string parsing of [id].
  */
 interface AiChatEngine {
     val id: String
     val displayName: String
+
+    /** Stable provider/selection identity. Defaults to the `id` prefix. */
+    val providerId: String get() = id.substringBefore("/")
+
+    /** The concrete model identifier. Defaults to the `id` suffix. */
+    val modelId: String get() = id.substringAfter("/")
+
     fun generate(request: GenerateRequest): Flow<String>
 }

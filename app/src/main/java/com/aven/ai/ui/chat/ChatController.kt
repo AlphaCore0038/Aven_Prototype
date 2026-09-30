@@ -122,8 +122,8 @@ class ChatController(
         scope.launch {
             try {
                 val engine = engineProvider()
-                val providerId = engine.id.substringBefore("/")
-                val modelId = engine.id.substringAfter("/")
+                val providerId = engine.providerId
+                val modelId = engine.modelId
 
                 // The saved conversation may have been wiped (e.g. "Clear Chat
                 // history" while its screen is open); fall through to creating
@@ -245,6 +245,18 @@ class ChatController(
                         }
                         throw e
                     } catch (e: AiChatException) {
+                        // Keep already-generated text: flush, persist the partial
+                        // reply, then surface the failure. Never discard output.
+                        if (pendingBuffer.isNotEmpty()) {
+                            _uiState.update { it.copy(streamingText = it.streamingText + pendingBuffer.toString()) }
+                            pendingBuffer.clear()
+                        }
+                        val partial = _uiState.value.streamingText
+                        if (partial.isNotBlank()) {
+                            chatDao.upsertMessage(
+                                assistantMessage(targetConversationId, partial, System.currentTimeMillis())
+                            )
+                        }
                         _uiState.update { it.copy(lastError = e.message ?: "Something went wrong") }
                     } catch (e: Exception) {
                         _uiState.update { it.copy(lastError = "Something went wrong") }

@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
  */
 class LocalEngine internal constructor(
     private val handle: Long?,
-    private val modelId: String = MODEL_ID
+    override val modelId: String = MODEL_ID
 ) : AiChatEngine {
 
     override val id = "${PROVIDER_ID}/$modelId"
@@ -49,10 +49,17 @@ class LocalEngine internal constructor(
             trySend(piece)
             generationScope.ensureActive()
         }
+        // Structured chat for native template — single source of truth, no Kotlin manual template.
+        val system = "You are Aven, a helpful, honest, and concise AI assistant. Answer directly and clearly."
+        val history = truncateHistory(request.history)
+        val historyRoles = history.map { if (modelId == GEMMA_ID && it.role == "assistant") "model" else it.role }.toTypedArray()
+        val historyContents = history.map { it.content }.toTypedArray()
         val fullText = try {
             withContext(Dispatchers.Default) {
                 inferenceMutex.withLock {
-                    LlamaNative.nativeGenerate(loadedHandle, buildPrompt(request), listener)
+                    LlamaNative.nativeGenerateChat(
+                        loadedHandle, system, historyRoles, historyContents, request.prompt, listener
+                    )
                 }
             }
         } catch (e: CancellationException) {
