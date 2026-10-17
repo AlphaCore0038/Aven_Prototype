@@ -1,0 +1,830 @@
+{
+  "nodes": [
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_document",
+      "label": "Speculative Decoding Documentation",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "label": "Speculative Decoding",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_draft_model",
+      "label": "Draft Model Speculative Decoding",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_eagle3",
+      "label": "EAGLE-3 Draft Model",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_dflash",
+      "label": "DFlash Block Diffusion Draft",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_dspark",
+      "label": "DSpark Semi-Autoregressive Draft",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_cache",
+      "label": "N-gram Cache Speculative Decoding",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_simple",
+      "label": "N-gram Simple Pattern Matching",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_mod",
+      "label": "N-gram Mod Hasher",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_llama_server",
+      "label": "llama-server Speculative Config",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_speculative_rationale_batch_efficiency",
+      "label": "Batch Efficiency Rationale for Speculative Decoding",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_document",
+      "label": "Android Build Documentation",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_android_gui_binding",
+      "label": "Android GUI Binding via Android Studio",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_inference_engine",
+      "label": "InferenceEngine via AiChat Facade",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_gguf_metadata_reader",
+      "label": "GgufMetadataReader",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_cross_compile_ndk",
+      "label": "Cross-compile with Android NDK",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_docs_android_termux",
+      "label": "Termux CLI Build on Android",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_simple_readme_document",
+      "label": "Simple Example README",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\simple\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_simple_readme_llama_simple",
+      "label": "llama-simple Minimal Example",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\simple\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_speculative_readme_document",
+      "label": "Speculative Examples README",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\speculative\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_speculative_readme_speculative_examples",
+      "label": "Speculative Decoding Examples",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\speculative\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_training_readme_document",
+      "label": "Training Examples README",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\training\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_training_readme_llama_finetune",
+      "label": "llama-finetune Training Example",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\training\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_examples_training_readme_llama_perplexity",
+      "label": "llama-perplexity Evaluation",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\training\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_document",
+      "label": "Imatrix Tool README",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_llama_imatrix",
+      "label": "llama-imatrix Tool",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_importance_matrix",
+      "label": "Importance Matrix for Quantization",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_quantization",
+      "label": "Quantization with Imatrix",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_document",
+      "label": "MTMD Multimodal README",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_libmtmd",
+      "label": "libmtmd Multimodal Library",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mmproj",
+      "label": "Multimodal Projector mmproj",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mtmd_cli",
+      "label": "mtmd-cli Unified CLI",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_multimodal_support",
+      "label": "Multimodal Support Subproject",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_contributing_document",
+      "label": "CONTRIBUTING Documentation",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_contributing_ai_usage_policy",
+      "label": "AI Usage Policy",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_contributing_contributor_levels",
+      "label": "Contributor Levels",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_contributing_pr_workflow",
+      "label": "Pull Request Workflow",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_agents_document",
+      "label": "AGENTS Guidelines Documentation",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_agents_ai_coding_guidelines",
+      "label": "AI Coding Agent Guidelines",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_agents_code_standards",
+      "label": "Code and Commit Standards",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_document",
+      "label": "Benchmark Workflow YAML",
+      "file_type": "document",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\.github\\workflows\\bench.yml.disabled",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_benchmark_workflow",
+      "label": "Benchmark Workflow",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\.github\\workflows\\bench.yml.disabled",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_server_bench",
+      "label": "Server Benchmark Tool",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\.github\\workflows\\bench.yml.disabled",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_draft_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_draft_model",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_eagle3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_eagle3",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_dflash",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_dflash",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_dspark",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_cache",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_cache",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_simple",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_simple",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_mod",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_llama_server",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_rationale_batch_efficiency",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+      "target": "app_src_main_cpp_llama_cpp_examples_speculative_readme_speculative_examples",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_importance_matrix",
+      "target": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_quantization",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_llama_imatrix",
+      "target": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_importance_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_llama_imatrix",
+      "target": "app_src_main_cpp_llama_cpp_tools_imatrix_readme_quantization",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\imatrix\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_libmtmd",
+      "target": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mtmd_cli",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_libmtmd",
+      "target": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mmproj",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mmproj",
+      "target": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_multimodal_support",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_libmtmd",
+      "target": "app_src_main_cpp_llama_cpp_tools_mtmd_readme_multimodal_support",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_android_android_gui_binding",
+      "target": "app_src_main_cpp_llama_cpp_docs_android_gguf_metadata_reader",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_android_android_gui_binding",
+      "target": "app_src_main_cpp_llama_cpp_docs_android_inference_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_android_cross_compile_ndk",
+      "target": "app_src_main_cpp_llama_cpp_docs_android_termux",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_android_android_gui_binding",
+      "target": "app_src_main_cpp_llama_cpp_docs_android_cross_compile_ndk",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_examples_training_readme_llama_finetune",
+      "target": "app_src_main_cpp_llama_cpp_examples_training_readme_llama_perplexity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\training\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_examples_simple_readme_llama_simple",
+      "target": "app_src_main_cpp_llama_cpp_examples_training_readme_llama_finetune",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\examples\\simple\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_contributing_contributor_levels",
+      "target": "app_src_main_cpp_llama_cpp_contributing_pr_workflow",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_contributing_ai_usage_policy",
+      "target": "app_src_main_cpp_llama_cpp_agents_ai_coding_guidelines",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\CONTRIBUTING.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_agents_ai_coding_guidelines",
+      "target": "app_src_main_cpp_llama_cpp_agents_code_standards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_agents_ai_coding_guidelines",
+      "target": "app_src_main_cpp_llama_cpp_contributing_ai_usage_policy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_benchmark_workflow",
+      "target": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_server_bench",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\.github\\workflows\\bench.yml.disabled",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_llama_server",
+      "target": "app_src_main_cpp_llama_cpp_github_workflows_bench_yml_disabled_server_bench",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_mod",
+      "target": "app_src_main_cpp_llama_cpp_docs_speculative_ngram_cache",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hyperedge_speculative_decoding_family",
+      "label": "Speculative Decoding Family",
+      "nodes": [
+        "app_src_main_cpp_llama_cpp_docs_speculative_speculative_decoding",
+        "app_src_main_cpp_llama_cpp_docs_speculative_draft_model",
+        "app_src_main_cpp_llama_cpp_docs_speculative_eagle3",
+        "app_src_main_cpp_llama_cpp_docs_speculative_dflash",
+        "app_src_main_cpp_llama_cpp_docs_speculative_dspark",
+        "app_src_main_cpp_llama_cpp_docs_speculative_ngram_cache",
+        "app_src_main_cpp_llama_cpp_docs_speculative_ngram_mod",
+        "app_src_main_cpp_llama_cpp_docs_speculative_llama_server"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\speculative.md"
+    },
+    {
+      "id": "hyperedge_multimodal_stack",
+      "label": "Multimodal Stack",
+      "nodes": [
+        "app_src_main_cpp_llama_cpp_tools_mtmd_readme_libmtmd",
+        "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mmproj",
+        "app_src_main_cpp_llama_cpp_tools_mtmd_readme_mtmd_cli",
+        "app_src_main_cpp_llama_cpp_tools_mtmd_readme_multimodal_support"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\tools\\mtmd\\README.md"
+    },
+    {
+      "id": "hyperedge_android_build_methods",
+      "label": "Android Build Methods",
+      "nodes": [
+        "app_src_main_cpp_llama_cpp_docs_android_android_gui_binding",
+        "app_src_main_cpp_llama_cpp_docs_android_termux",
+        "app_src_main_cpp_llama_cpp_docs_android_cross_compile_ndk",
+        "app_src_main_cpp_llama_cpp_docs_android_inference_engine",
+        "app_src_main_cpp_llama_cpp_docs_android_gguf_metadata_reader"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\cpp\\llama.cpp\\docs\\android.md"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

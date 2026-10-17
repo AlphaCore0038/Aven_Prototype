@@ -1,7 +1,6 @@
 package com.aven.ai.ui.drawer
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,17 +11,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -42,25 +42,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathNode
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aven.ai.R
 import com.aven.ai.data.local.ConversationEntity
+import com.aven.ai.ui.chat.LuckyRookieFamily
 import com.aven.ai.ui.theme.RefPalette
 import com.aven.ai.ui.theme.rememberRefPalette
 
 /**
- * Aven navigation drawer: branding, Pinned / Recent conversation history,
- * and the Settings / New-chat actions. Tap a chat to resume it; long-press
- * opens a small dropdown at the row with Pin/Unpin, Rename, and Delete.
- * Private conversations never reach this list (filtered by
+ * Aven navigation drawer: Pinned / Recent conversation history plus the
+ * Settings / New-chat actions. Tap a chat to resume it; long-press opens a
+ * small dropdown at the row with Pin/Unpin, Rename, and Delete. Private
+ * conversations never reach this list (filtered by
  * [com.aven.ai.data.local.ChatDao]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +72,7 @@ fun AvenDrawer(
     pinnedChats: List<ConversationEntity>,
     recentChats: List<ConversationEntity>,
     userInitial: String = "",
+    avatarColor: Int? = null,
     onNewChat: () -> Unit,
     onOpenPrivate: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -94,20 +98,25 @@ fun AvenDrawer(
         drawerContentColor = MaterialTheme.colorScheme.onSurface,
         drawerShape = RoundedCornerShape(0.dp)
     ) {
+        // Template top offset is 56dp from the screen edge; the sheet already
+        // consumes the status-bar inset, so only the remainder is added here.
+        val contentTop =
+            (56.dp - WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                .coerceAtLeast(0.dp)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = contentTop, bottom = 24.dp)
         ) {
-            Image(
-                painter = painterResource(R.drawable.logo_wordmark),
-                contentDescription = "Aven",
-                modifier = Modifier.height(28.dp),
-                contentScale = ContentScale.Fit
+            Text(
+                text = "Aven",
+                fontFamily = LuckyRookieFamily,
+                fontSize = 24.sp,
+                color = if (dark) ref.textStrong else MaterialTheme.colorScheme.onSurface
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 2.dp)
+            HorizontalDivider(thickness = 1.dp, color = ref.rowDivider)
             Spacer(modifier = Modifier.height(24.dp))
 
             Column(
@@ -115,49 +124,55 @@ fun AvenDrawer(
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
-                DrawerSectionHeader("Pinned", dark = dark)
+                DrawerSectionHeader("Pinned", dark = dark, topPad = 0.dp)
                 if (pinnedChats.isEmpty()) {
-                    DrawerEmptyHint("Nothing pinned yet")
+                    DrawerEmptyHint("Nothing pinned yet", dark = dark)
                 } else {
-                    pinnedChats.forEach { chat ->
-                        DrawerChatRow(
-                            title = chat.title.ifBlank { "Untitled chat" },
-                            isPinned = true,
-                            dark = dark,
-                            onClick = { onOpenConversation(chat.id) },
-                            onPinToggle = {
-                                onTogglePin(chat.id, false)
-                            },
-                            onRenameRequest = {
-                                renameTarget = chat
-                                renameDraft = chat.title
-                            },
-                            onDeleteRequest = { confirmDelete = chat }
-                        )
+                    // Template: flat bullet rows, 15dp gaps, no card backgrounds.
+                    Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
+                        pinnedChats.forEach { chat ->
+                            DrawerChatRow(
+                                title = chat.title.ifBlank { "Untitled chat" },
+                                isPinned = true,
+                                dark = dark,
+                                onClick = { onOpenConversation(chat.id) },
+                                onPinToggle = {
+                                    onTogglePin(chat.id, false)
+                                },
+                                onRenameRequest = {
+                                    renameTarget = chat
+                                    renameDraft = chat.title
+                                },
+                                onDeleteRequest = { confirmDelete = chat }
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                DrawerSectionHeader("Recents", dark = dark)
+                DrawerSectionHeader("Recents", dark = dark, topPad = 4.dp)
                 if (recentChats.isEmpty()) {
-                    DrawerEmptyHint("No chats yet")
+                    DrawerEmptyHint("No chats yet", dark = dark)
                 } else {
-                    recentChats.forEach { chat ->
-                        DrawerChatRow(
-                            title = chat.title.ifBlank { "Untitled chat" },
-                            isPinned = false,
-                            dark = dark,
-                            onClick = { onOpenConversation(chat.id) },
-                            onPinToggle = {
-                                onTogglePin(chat.id, true)
-                            },
-                            onRenameRequest = {
-                                renameTarget = chat
-                                renameDraft = chat.title
-                            },
-                            onDeleteRequest = { confirmDelete = chat }
-                        )
+                    // Template: same flat rows, 17dp gaps.
+                    Column(verticalArrangement = Arrangement.spacedBy(17.dp)) {
+                        recentChats.forEach { chat ->
+                            DrawerChatRow(
+                                title = chat.title.ifBlank { "Untitled chat" },
+                                isPinned = false,
+                                dark = dark,
+                                onClick = { onOpenConversation(chat.id) },
+                                onPinToggle = {
+                                    onTogglePin(chat.id, true)
+                                },
+                                onRenameRequest = {
+                                    renameTarget = chat
+                                    renameDraft = chat.title
+                                },
+                                onDeleteRequest = { confirmDelete = chat }
+                            )
+                        }
                     }
                 }
             }
@@ -165,14 +180,15 @@ fun AvenDrawer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 16.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Surface(
                     onClick = onOpenSettings,
                     shape = CircleShape,
-                    color = RefPalette.AvatarCoral,
+                    color = avatarColor?.let { Color(it) } ?: RefPalette.AvatarCoral,
+                    shadowElevation = 1.dp,
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -181,6 +197,7 @@ fun AvenDrawer(
                             fontSize = 15.sp,
                             fontFamily = FontFamily.Default,
                             fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.38).sp,
                             color = Color.White
                         )
                     }
@@ -188,16 +205,19 @@ fun AvenDrawer(
 
                 Surface(
                     onClick = onNewChat,
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.inverseSurface,
-                    contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                    shape = CircleShape,
+                    color = if (dark) Color.White else MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = if (dark) Color(0xFF191919) else MaterialTheme.colorScheme.inverseOnSurface,
+                    shadowElevation = 1.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+                        modifier = Modifier
+                            .height(48.dp)
+                            .padding(horizontal = 24.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Add,
+                            imageVector = DrawerPlusIcon,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -206,7 +226,8 @@ fun AvenDrawer(
                             text = "New chat",
                             fontSize = 16.sp,
                             fontFamily = FontFamily.Default,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = (-0.4).sp
                         )
                     }
                 }
@@ -286,47 +307,33 @@ private fun DrawerChatRow(
     var menuExpanded by remember { mutableStateOf(false) }
     val ref = rememberRefPalette(dark)
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.fillMaxWidth()
+    Box(modifier = Modifier.fillMaxWidth()) {
+        // Template: flat link row — hollow bullet + title, no card background.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true }
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = { menuExpanded = true }
-                    )
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .border(
-                            1.5.dp,
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                            CircleShape
-                        )
-                )
-                Spacer(modifier = Modifier.width(12.dp))
+                    .size(8.dp)
+                    .border(1.5.dp, ref.sectionGray, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(14.dp))
                 Text(
                     text = title,
                     fontSize = 15.5.sp,
                     fontFamily = FontFamily.Default,
                     fontWeight = FontWeight.Normal,
+                    letterSpacing = (-0.16).sp,
                     color = if (dark) ref.textStrong else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
         }
 
         DropdownMenu(
@@ -361,19 +368,49 @@ private fun DrawerChatRow(
 }
 
 @Composable
-private fun DrawerEmptyHint(text: String) {
+private fun DrawerEmptyHint(text: String, dark: Boolean = true) {
+    val ref = rememberRefPalette(dark)
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+        fontSize = 14.sp,
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        color = ref.sectionGray,
+        modifier = Modifier.padding(start = 22.dp, top = 6.dp, bottom = 6.dp)
     )
 }
+
+/**
+ * Template's New-chat plus: 24x24 viewBox, 2.5 stroke, round caps/joins.
+ * The stroke brush is required or the path paints nothing; the Icon tint
+ * recolors it to the pill's content color.
+ */
+private val DrawerPlusIcon: ImageVector = ImageVector.Builder(
+    name = "DrawerPlus",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    addPath(
+        pathData = listOf(
+            PathNode.MoveTo(12f, 5f),
+            PathNode.LineTo(12f, 19f),
+            PathNode.MoveTo(5f, 12f),
+            PathNode.LineTo(19f, 12f)
+        ),
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2.5f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    )
+}.build()
 
 @Composable
 private fun DrawerSectionHeader(
     title: String,
-    dark: Boolean = true
+    dark: Boolean = true,
+    topPad: Dp = 0.dp
 ) {
     val ref = rememberRefPalette(dark)
     Text(
@@ -381,8 +418,9 @@ private fun DrawerSectionHeader(
         fontSize = 15.sp,
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
+        letterSpacing = (-0.38).sp,
         color = ref.sectionGray,
-        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+        modifier = Modifier.padding(top = topPad, bottom = 12.dp)
     )
 }
 

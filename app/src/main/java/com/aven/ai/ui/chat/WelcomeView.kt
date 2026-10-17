@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
@@ -53,9 +54,16 @@ fun WelcomeView(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Drawn once per fresh-chat composition (and across rotation via
+            // save/restore); never re-rolled on plain recomposition.
+            val greeting = rememberSaveable(userName) {
+                GreetingSelector.next(userName)
+            }
             Text(
-                text = "Hey ${userName.ifBlank { "User" }}....",
-                style = MaterialTheme.typography.displayMedium,
+                text = greeting,
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontFamily = LuckyRookieFamily
+                ),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )

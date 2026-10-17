@@ -1,0 +1,10 @@
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\cpp-httplib\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\hash\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\hash\rotate-bits\LICENSE.md
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\miniaudio\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\nlohmann\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\sheredom\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\vendor\stb\CMakeLists.txt
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\docs\development\llama-star\idea-arch.pdf
+C:\Users\chait\OneDrive\Desktop\New folder\projects\OC\app\src\main\cpp\llama.cpp\tools\ui\tests\stories\fixtures\assets\example.pdf

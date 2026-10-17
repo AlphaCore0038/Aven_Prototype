@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-09-16",
+  "root": ".",
+  "mode": "targeted-update (8 code files re-extracted + AGENTS.md semantic)",
+  "total_files": 2986,
+  "total_words": 4562789,
+  "graph_nodes": 48828,
+  "graph_edges": 123717,
+  "communities": 1507,
+  "viz": "graph.html skipped - exceeds 5000 node limit",
+  "changed_files": [
+    "app/src/main/cpp/aven_llama.cpp",
+    "app/src/main/java/com/aven/ai/engine/local/LlamaNative.kt",
+    "app/src/main/java/com/aven/ai/engine/local/LocalEngine.kt",
+    "app/src/main/java/com/aven/ai/ui/chat/ChatScreen.kt",
+    "app/src/main/java/com/aven/ai/ui/components/MessageComposer.kt",
+    "app/src/main/java/com/aven/ai/engine/ResponseMode.kt",
+    "app/src/main/java/com/aven/ai/engine/remote/NimEngine.kt",
+    "app/src/main/java/com/aven/ai/ui/components/AssistantMarkdown.kt",
+    "AGENTS.md"
+  ]
+}

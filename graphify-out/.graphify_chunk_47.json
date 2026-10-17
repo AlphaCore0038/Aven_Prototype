@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "id": "app_src_main_res_drawable_nodpi_logo_wordmark_png_logo_wordmark",
+      "label": "Logo Wordmark",
+      "file_type": "image",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_res_drawable_nodpi_logo_wordmark_png_ui_icon_design",
+      "label": "UI Icon Design",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_src_main_res_drawable_nodpi_logo_wordmark_png_drawable_resource",
+      "label": "Drawable Resource",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "app_src_main_res_drawable_nodpi_logo_wordmark_png_logo_wordmark",
+      "target": "app_src_main_res_drawable_nodpi_logo_wordmark_png_ui_icon_design",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_res_drawable_nodpi_logo_wordmark_png_logo_wordmark",
+      "target": "app_src_main_res_drawable_nodpi_logo_wordmark_png_drawable_resource",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_src_main_res_drawable_nodpi_logo_wordmark_png_ui_icon_design",
+      "target": "app_src_main_res_drawable_nodpi_logo_wordmark_png_drawable_resource",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\chait\\OneDrive\\Desktop\\New folder\\projects\\OC\\app\\src\\main\\res\\drawable-nodpi\\logo_wordmark.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

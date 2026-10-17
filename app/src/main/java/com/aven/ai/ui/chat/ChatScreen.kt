@@ -115,7 +115,6 @@ fun ChatScreen(
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
     val localModelState by viewModel.localModelState.collectAsStateWithLifecycle()
     val gemmaModelState by viewModel.gemmaModelState.collectAsStateWithLifecycle()
-    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
 
     var text by rememberSaveable { mutableStateOf("") }
@@ -166,16 +165,24 @@ fun ChatScreen(
     val dark = settings.theme != SettingsRepository.AppSettings.THEME_LIGHT
     val ref = rememberRefPalette(dark)
 
-    val currentModelLabel = remember(models, settings, localModelState) {
+    val currentOption = remember(models, settings, localModelState) {
         val selected = models.firstOrNull {
             it.providerId == settings.defaultProviderId && it.modelId == settings.defaultModelId
         }
-        val actual = selected ?: models.firstOrNull { model ->
+        selected ?: models.firstOrNull { model ->
             if (model.providerId == "local") localModelState is LocalModelState.Ready else true
         } ?: models.firstOrNull()
-
-        actual?.displayName ?: "No model selected"
     }
+    // Top line is the live prompt input; capsule below selects the model.
+    // Provider shown only for remote options, where the registry stores a real one.
+    val chatWithLabel = currentOption?.let { "Chat with ${it.displayName}..." } ?: "Chat with..."
+    val selectorText = currentOption?.let { option ->
+        if (option.kind == EngineKind.REMOTE && option.description.isNotBlank()) {
+            "${option.displayName} • ${option.description}"
+        } else {
+            option.displayName
+        }
+    } ?: "No model selected"
 
     // ponytail: safeDrawing.max(ime, nav) is single source; footer hidden when IME visible
     // to keep composer 8dp above keyboard instead of footer-height above.
@@ -198,7 +205,7 @@ fun ChatScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(state.messages, key = { it.id }) { message ->
@@ -244,13 +251,8 @@ fun ChatScreen(
         }
 
         MessageComposer(
-            hint = if (text.isEmpty()) {
-                stringResource(R.string.composer_hint)
-            } else {
-                stringResource(R.string.composer_hint_chat)
-            },
-            modelLabel = currentModelLabel,
-            isOnline = isOnline,
+            chatWithLabel = chatWithLabel,
+            selectorText = selectorText,
             isGenerating = state.isGenerating,
             enabled = true,
             text = text,
@@ -265,7 +267,7 @@ fun ChatScreen(
             focusRequester = focusRequester,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 20.dp, vertical = 8.dp),
             isPrivate = isPrivate,
             dark = dark
         )

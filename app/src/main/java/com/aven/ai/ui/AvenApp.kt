@@ -80,6 +80,7 @@ fun AvenApp() {
                 pinnedChats = conversations.filter { it.isPinned },
                 recentChats = conversations.filter { !it.isPinned }.take(MAX_RECENT_CHATS),
                 userInitial = profile.name.trim().take(1).uppercase(),
+                avatarColor = profile.avatarColor,
                 dark = dark,
                 onNewChat = { navigateFresh(Destinations.chat(false)) },
                 onOpenPrivate = { navigateFresh(Destinations.chat(true)) },

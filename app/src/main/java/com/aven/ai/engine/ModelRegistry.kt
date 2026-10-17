@@ -63,7 +63,7 @@ class ModelRegistry(
     fun optionFor(config: RemoteModelConfig): AiModelOption = AiModelOption(
         providerId = config.id,
         modelId = config.modelId,
-        displayName = config.modelId,
+        displayName = formatModelDisplayName(config.modelId),
         description = config.providerName,
         kind = EngineKind.REMOTE,
         baseUrl = config.baseUrl

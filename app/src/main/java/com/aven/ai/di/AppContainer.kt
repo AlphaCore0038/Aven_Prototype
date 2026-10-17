@@ -125,6 +125,11 @@ class AppContainer(context: Context) {
                     }
                 }
         }
+
+        // First-run avatar colour: assign-once, atomic, never overwrites a stored choice.
+        applicationScope.launch {
+            userProfileRepository.ensureAvatarColorAssigned()
+        }
     }
 
     /**

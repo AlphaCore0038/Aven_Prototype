@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Settings</title>
+<!-- Tailwind CSS v3 CDN with forms & container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#121212',
+            cardBg: '#1e1e1e',
+            divider: '#292929',
+            toggleActive: '#2d77e5',
+            subText: '#9e9e9e',
+            iconColor: '#e0e0e0',
+          },
+          fontFamily: {
+            serifHeading: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
+            sansDefault: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+<!-- Custom CSS for specific overrides -->
+<style data-purpose="custom-styling">
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    /* Hide default scrollbar for seamless mobile screen feel */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-appBg text-white font-sansDefault flex justify-center min-h-screen antialiased">
+<!-- Mobile Viewport Container -->
+<div class="w-full max-w-md min-h-screen bg-appBg flex flex-col justify-between relative px-4 pt-3 pb-2" data-purpose="mobile-screen-wrapper">
+<div>
+<!-- BEGIN: Header -->
+<header class="flex items-center justify-between py-3 mb-2" data-purpose="screen-header">
+<!-- Left Menu Icon (Hamburger) -->
+<button aria-label="Menu" class="text-white hover:opacity-80 active:opacity-60 transition-opacity p-1" type="button">
+<svg class="w-6 h-6 stroke-[1.8]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line stroke-linecap="round" x1="4" x2="20" y1="7" y2="7"></line>
+<line stroke-linecap="round" x1="4" x2="20" y1="12" y2="12"></line>
+<line stroke-linecap="round" x1="4" x2="20" y1="17" y2="17"></line>
+</svg>
+</button>
+<!-- Center Screen Title -->
+<h1 class="text-[21px] font-serifHeading tracking-normal text-white font-medium select-none">
+          Settings
+        </h1>
+<!-- Right Info Icon -->
+<button aria-label="Information" class="text-white hover:opacity-80 active:opacity-60 transition-opacity p-1" type="button">
+<svg class="w-6 h-6 stroke-[1.8]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<line stroke-linecap="round" stroke-width="2.5" x1="12" x2="12" y1="8" y2="8.01"></line>
+<line stroke-linecap="round" x1="12" x2="12" y1="11.5" y2="16"></line>
+</svg>
+</button>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: Settings Groups -->
+<main class="space-y-4" data-purpose="settings-sections-list">
+<!-- Group 1: Profile & Billing -->
+<section class="bg-cardBg rounded-[20px] overflow-hidden" data-purpose="settings-group-1">
+<!-- Profile Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="12" cy="8" r="4"></circle>
+<path d="M5.5 20a6.5 6.5 0 0 1 13 0" stroke-linecap="round"></path>
+<circle cx="12" cy="12" r="10"></circle>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Profile
+            </div>
+</div>
+<!-- Billing Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<path d="M12 6.5v11M14.5 9.5a2 2 0 0 0-2-1.5h-1a1.8 1.8 0 0 0 0 3.6h1a1.8 1.8 0 0 1 0 3.6h-1a2 2 0 0 1-2-1.7" stroke-linecap="round"></path>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Billing
+            </div>
+</div>
+</section>
+<!-- Group 2: Capabilities, Connectors, Permissions -->
+<section class="bg-cardBg rounded-[20px] overflow-hidden" data-purpose="settings-group-2">
+<!-- Capabilities Row -->
+<div class="flex items-center px-4 py-3.5 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line stroke-linecap="round" x1="6" x2="6" y1="4" y2="20"></line>
+<circle cx="6" cy="14" fill="#1e1e1e" r="2"></circle>
+<line stroke-linecap="round" x1="12" x2="12" y1="4" y2="20"></line>
+<circle cx="12" cy="9" fill="#1e1e1e" r="2"></circle>
+<line stroke-linecap="round" x1="18" x2="18" y1="4" y2="20"></line>
+<circle cx="18" cy="15" fill="#1e1e1e" r="2"></circle>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="text-[17px] tracking-tight font-normal text-white">Capabilities</span>
+<span class="text-[13px] text-subText mt-0.5 leading-none">5 enabled</span>
+</div>
+</div>
+<!-- Connectors Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 15l6 -6" stroke-linecap="round"></path>
+<path d="M11 6l2.5 -2.5a3.536 3.536 0 0 1 5 5l-2.5 2.5" stroke-linecap="round"></path>
+<path d="M13 18l-2.5 2.5a3.536 3.536 0 0 1 -5 -5l2.5 -2.5" stroke-linecap="round"></path>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Connectors
+            </div>
+</div>
+<!-- Permissions Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<!-- Android Head Icon -->
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M5 16h14a7 7 0 0 0-14 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<line stroke-linecap="round" x1="8" x2="6" y1="9" y2="6"></line>
+<line stroke-linecap="round" x1="16" x2="18" y1="9" y2="6"></line>
+<circle cx="9" cy="13" fill="currentColor" r="0.75"></circle>
+<circle cx="15" cy="13" fill="currentColor" r="0.75"></circle>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Permissions
+            </div>
+</div>
+</section>
+<!-- Group 3: Color mode, Font style, Voice -->
+<section class="bg-cardBg rounded-[20px] overflow-hidden" data-purpose="settings-group-3">
+<!-- Color Mode Row -->
+<div class="flex items-center px-4 py-3.5 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="text-[17px] tracking-tight font-normal text-white">Color mode</span>
+<span class="text-[13px] text-subText mt-0.5 leading-none">System</span>
+</div>
+</div>
+<!-- Font Style Row -->
+<div class="flex items-center px-4 py-3.5 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center w-[22px]">
+<span class="font-serif text-[19px] font-normal leading-none tracking-tight">Aa</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[17px] tracking-tight font-normal text-white">Font style</span>
+<span class="text-[13px] text-subText mt-0.5 leading-none">Default</span>
+</div>
+</div>
+<!-- Voice Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.8]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line stroke-linecap="round" x1="6" x2="6" y1="10" y2="14"></line>
+<line stroke-linecap="round" x1="10" x2="10" y1="6" y2="18"></line>
+<line stroke-linecap="round" x1="14" x2="14" y1="9" y2="15"></line>
+<line stroke-linecap="round" x1="18" x2="18" y1="7" y2="17"></line>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Voice
+            </div>
+</div>
+</section>
+<!-- Group 4: Haptic feedback, Notifications, Privacy -->
+<section class="bg-cardBg rounded-[20px] overflow-hidden" data-purpose="settings-group-4">
+<!-- Haptic Feedback Row with Switch -->
+<div class="flex items-center justify-between px-4 py-3 border-b border-divider">
+<div class="flex items-center">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<!-- Vibrating Phone Icon -->
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="16" rx="2" width="10" x="7" y="4"></rect>
+<path d="M4 8c-0.8 1.2-0.8 2.8 0 4M4 14c-0.8-1.2-0.8-2.8 0-4" stroke-linecap="round"></path>
+<path d="M20 8c0.8 1.2 0.8 2.8 0 4M20 14c0.8-1.2 0.8-2.8 0-4" stroke-linecap="round"></path>
+</svg>
+</div>
+<span class="text-[17px] tracking-tight font-normal text-white">Haptic feedback</span>
+</div>
+<!-- Toggle Switch (Checked/Active State) -->
+<label class="relative inline-flex items-center cursor-pointer select-none" data-purpose="toggle-switch">
+<input checked="" class="sr-only peer" id="haptic-toggle" type="checkbox"/>
+<div class="w-[50px] h-[28px] bg-[#3a3a3c] rounded-full peer peer-checked:bg-toggleActive transition-colors duration-200 ease-in-out"></div>
+<div class="absolute left-[2px] top-[2px] bg-white w-6 h-6 rounded-full transition-transform duration-200 ease-in-out transform peer-checked:translate-x-[22px] shadow-md"></div>
+</label>
+</div>
+<!-- Notifications Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer border-b border-divider" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Notifications
+            </div>
+</div>
+<!-- Privacy Row -->
+<div class="flex items-center px-4 py-4 active:bg-[#252525] transition-colors cursor-pointer" role="button" tabindex="0">
+<div class="mr-4 text-iconColor flex items-center justify-center">
+<svg class="w-[22px] h-[22px] stroke-[1.7]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0c0 1.5.8 2.5 1.5 3h3" stroke-linecap="round"></path>
+</svg>
+</div>
+<div class="text-[17px] tracking-tight font-normal text-white">
+              Privacy
+            </div>
+</div>
+</section>
+</main>
+<!-- END: Settings Groups -->
+</div>
+<!-- BEGIN: Home Indicator -->
+<!-- Bottom safe area home bar -->
+<footer class="w-full flex justify-center py-2 mt-4" data-purpose="bottom-navigation-indicator">
+<div class="w-36 h-1 bg-white/60 rounded-full"></div>
+</footer>
+<!-- END: Home Indicator -->
+</div>
+</body></html>

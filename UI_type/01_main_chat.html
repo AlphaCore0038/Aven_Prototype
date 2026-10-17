@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" style="">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    name="viewport">
+  <title>Claude Mobile Chat Interface</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- BEGIN: Custom Layout & Colors -->
+  <style data-purpose="custom-styling">
+    :root {
+      --bg-dark: #131313;
+      --card-bg: #1c1c1b;
+      --pill-bg: #282827;
+      --btn-circle-bg: #2b2b2a;
+    }
+
+    body {
+      background-color: #0c0c0c;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Screen shell maintaining realistic mobile aspect ratio */
+    .mobile-frame {
+      background-color: var(--bg-dark);
+      width: 100%;
+      max-width: 420px;
+      min-height: 100dvh;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+  </style>
+  <!-- END: Custom Layout & Colors -->
+</head>
+
+<body class="flex items-center justify-center min-h-screen m-0 p-0 text-white">
+  <!-- BEGIN: MobileDeviceContainer -->
+  <div class="mobile-frame flex flex-col justify-between overflow-hidden px-5 pt-8 pb-7">
+    <!-- BEGIN: TopHeader -->
+    <!-- Top navigation bar with Hamburger Menu and Mascot Outline Icon -->
+    <header class="flex items-center justify-between pt-2 pb-4 w-full">
+      <!-- Left: Hamburger Menu Icon -->
+      <button aria-label="Open Menu"
+        class="text-neutral-300 hover:text-white transition-opacity p-1 active:opacity-70 flex flex-col justify-center items-start gap-[5px]"
+        data-purpose="menu-toggle" type="button">
+        <span class="w-5 h-[2px] bg-neutral-200 rounded-full block"></span>
+        <span class="w-5 h-[2px] bg-neutral-200 rounded-full block"></span>
+        <span class="w-3.5 h-[2px] bg-neutral-200 rounded-full block"></span>
+      </button>
+      <!-- Right: Mascot / Claude Outline Icon -->
+      <button aria-label="Profile" class="text-neutral-200 hover:text-white transition-opacity p-1 active:opacity-70"
+        data-purpose="user-profile" type="button">
+        <svg class="w-6 h-6 stroke-current fill-none stroke-[1.8]" stroke-linecap="round" stroke-linejoin="round"
+          viewBox="0 0 24 24">
+          <!-- Mascot body with cute wavy tentacles/bottom -->
+          <path
+            d="M5 14V9a7 7 0 0 1 14 0v5c0 2-1 3.5-2 3.5s-1.5-1-2.5-1-1.5 1-2.5 1-1.5-1-2.5-1-1.5 1-2.5 1S5 16 5 14Z">
+          </path>
+          <!-- Two little dot eyes -->
+          <circle cx="9.5" cy="10" fill="currentColor" r="0.75" stroke="none"></circle>
+          <circle cx="14.5" cy="10" fill="currentColor" r="0.75" stroke="none"></circle>
+        </svg>
+      </button>
+    </header>
+    <!-- END: TopHeader -->
+    <!-- BEGIN: CenterContentArea -->
+    <!-- Ambient dark space / center canvas -->
+    <main class="flex-1 flex items-center justify-center relative w-full pointer-events-none">
+      <div class="flex items-center justify-center select-none"><img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCP7Z7McFwoppmNXqc2G6J7hs_05fd1PaO278sA0MNl9dqjsqS0UXWLZlkdG57gKlYOI9b89558qhICAdjHcZaDAvfUhtKUf2cljqZ6VivvxB4CKTEry4EJ9yu_F0wfVHeyBLWT4DSKY8VUOaf8KItJokn-vMIRMqvxzt3tDZn-Crg9sT2vUerAGZrkkshwnvyNjyBpX4J5SsAd7_GUa8sp2zqcI-UWVw9Fxa2fheKkobXVDaGs9QwqYpqO2FybMzf799g"
+          alt="Logo Monogram"
+          class="w-32 h-auto object-contain drop-shadow-lg opacity-95 transition-transform duration-300 hover:scale-105"
+          style="mix-blend-mode: screen; background: transparent;"></div>
+    </main>
+    <!-- END: CenterContentArea -->
+    <!-- BEGIN: BottomInteractiveCard -->
+    <!-- Bottom floating drawer card containing prompt & input tools -->
+    <footer class="w-full">
+      <div
+        class="w-full rounded-[28px] bg-[#1a1a19] border border-[#262625]/60 p-4 pt-5 pb-4 shadow-2xl flex flex-col gap-5"
+        data-purpose="action-card">
+        <!-- Card Text Label -->
+        <div class="px-1 text-[#8f8f8e] text-[17px] font-normal tracking-tight">
+          Chat with {%{$modelName}%}...
+        </div>
+        <!-- Input controls bar -->
+        <div class="flex items-center gap-2.5 w-full">
+          <!-- Middle Capsule Empty Field -->
+          <div
+            class="flex-1 h-11 bg-[#272726] rounded-full px-4 flex items-center cursor-text transition-colors hover:bg-[#2d2d2c]"
+            data-purpose="text-input-capsule">
+            <!-- Blank rounded capsule space matching UI -->
+            {$modelName} • {$modelProvider}
+          </div>
+          <button aria-label="Voice mode"
+            class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-black hover:bg-neutral-200 active:scale-95 transition-all shrink-0 shadow-md"
+            data-purpose="voice-mode-button" type="button">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <!-- Send / Paper-plane icon -->
+              <path d="M21.5 2.5L2.5 10.5L10.5 13.5L13.5 21.5L21.5 2.5Z"></path>
+              <path d="M10.5 13.5L21.5 2.5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </footer>
+    <!-- END: BottomInteractiveCard -->
+  </div>
+  <!-- END: MobileDeviceContainer -->
+
+
+
+
+</body>
+
+</html>
