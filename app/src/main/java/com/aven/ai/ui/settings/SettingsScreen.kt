@@ -73,11 +73,6 @@ fun SettingsScreen(
     val settings by settingsRepository.settings.collectAsStateWithLifecycle(
         initialValue = SettingsRepository.AppSettings()
     )
-    val themeLabel = when (settings.theme) {
-        SettingsRepository.AppSettings.THEME_LIGHT -> "Light"
-        SettingsRepository.AppSettings.THEME_SYSTEM -> "System"
-        else -> "Dark"
-    }
     val dark = settings.theme != SettingsRepository.AppSettings.THEME_LIGHT
     val ref = rememberRefPalette(dark)
     Column(
@@ -114,10 +109,11 @@ fun SettingsScreen(
             SettingsRow(
                 icon = Icons.Filled.Palette,
                 label = "Theme",
-                subtext = themeLabel,
                 dark = dark
             ) {
-                ThemeSelector(settingsRepository)
+                Column(modifier = Modifier.padding(start = 38.dp)) {
+                    ThemeSelector(settingsRepository)
+                }
             }
             SettingsRow(
                 icon = Icons.Filled.Person,
@@ -201,14 +197,13 @@ private fun SettingsGroup(
 private fun SettingsRow(
     icon: ImageVector,
     label: String,
-    subtext: String? = null,
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = true,
     dark: Boolean = true,
     content: (@Composable () -> Unit)? = null
 ) {
     val ref = rememberRefPalette(dark)
-    val hasDetail = subtext != null || content != null
+    val hasDetail = content != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,16 +231,6 @@ private fun SettingsRow(
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    if (subtext != null) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = subtext,
-                            fontSize = 13.sp,
-                            fontFamily = FontFamily.Default,
-                            fontWeight = FontWeight.Normal,
-                            color = ref.settingsSubText
-                        )
-                    }
                 }
             }
             if (content != null) {
