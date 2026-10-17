@@ -73,7 +73,7 @@ fun WelcomeView(
             Image(
                 painter = painterResource(id = R.drawable.private_chat_icon),
                 contentDescription = null,
-                modifier = Modifier.size(46.dp),
+                modifier = Modifier.size(84.dp),
                 colorFilter = ColorFilter.tint(Color.White, blendMode = BlendMode.Multiply)
             )
 
