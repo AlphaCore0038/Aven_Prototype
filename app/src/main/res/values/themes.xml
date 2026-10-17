@@ -8,8 +8,8 @@
     </style>
 
     <style name="Theme.Aven.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/aven_surface</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_monogram_a</item>
+        <item name="windowSplashScreenBackground">#000000</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_monogram</item>
         <item name="postSplashScreenTheme">@style/Theme.Aven</item>
     </style>
 </resources>
