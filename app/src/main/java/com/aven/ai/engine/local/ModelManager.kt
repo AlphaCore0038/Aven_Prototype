@@ -12,6 +12,7 @@ import java.io.File
 
 sealed interface LocalModelState {
     data object NotInstalled : LocalModelState
+    data object Downloaded : LocalModelState
     data object Loading : LocalModelState
     data class Downloading(val progress: Float) : LocalModelState
     data object Ready : LocalModelState
@@ -23,8 +24,9 @@ sealed interface LocalModelState {
  * (native load), ready, and remove. The engine instance is created only after
  * the model file has been verified, so [engine] is never a broken stub.
  *
- * A file that exists on disk is [LocalModelState.Loading] until the native
- * load succeeds — never silently [LocalModelState.Ready].
+ * A file that exists on disk is never silently [LocalModelState.Ready]: the
+ * selected model loads ([LocalModelState.Loading]), unselected files rest in
+ * [LocalModelState.Downloaded] until the native load succeeds.
  */
 class ModelManager(
     private val modelFile: () -> File,
@@ -43,12 +45,16 @@ class ModelManager(
     private var engine: LocalEngine? = null
 
     init {
-        if (modelFile().isFile && isSelected()) {
-            _state.value = LocalModelState.Loading
-            // Load the engine instance on a background thread so we don't block
-            // the lazy initialization of the container.
-            loadJob = scope.launch {
-                verifyAndReady()
+        if (modelFile().isFile) {
+            if (isSelected()) {
+                _state.value = LocalModelState.Loading
+                // Load the engine instance on a background thread so we don't block
+                // the lazy initialization of the container.
+                loadJob = scope.launch {
+                    verifyAndReady()
+                }
+            } else {
+                _state.value = LocalModelState.Downloaded
             }
         }
     }
@@ -107,7 +113,11 @@ class ModelManager(
         LocalEngine.unload(engine)
         engine = null
         if (_state.value is LocalModelState.Ready || _state.value is LocalModelState.Loading) {
-            _state.value = LocalModelState.NotInstalled
+            _state.value = if (modelFile().isFile) {
+                LocalModelState.Downloaded
+            } else {
+                LocalModelState.NotInstalled
+            }
         }
     }
 

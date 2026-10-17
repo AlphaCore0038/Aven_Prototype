@@ -168,7 +168,12 @@ fun ChatScreen(
             it.providerId == settings.defaultProviderId && it.modelId == settings.defaultModelId
         }
         selected ?: models.firstOrNull { model ->
-            if (model.providerId == "local") localModelState is LocalModelState.Ready else true
+            if (model.providerId == "local") {
+                localModelState is LocalModelState.Ready ||
+                    localModelState is LocalModelState.Downloaded
+            } else {
+                true
+            }
         } ?: models.firstOrNull()
     }
     // Top line is the live prompt input; capsule below selects the model.
@@ -381,9 +386,9 @@ private fun ModelSelectionSheet(
                             localModelState = stateForOption,
                             dark = dark,
                             onClick = {
-                                if (option.kind == EngineKind.LOCAL &&
-                                    stateForOption !is LocalModelState.Ready
-                                ) {
+                                val loadable = stateForOption is LocalModelState.Ready ||
+                                    stateForOption is LocalModelState.Downloaded
+                                if (option.kind == EngineKind.LOCAL && !loadable) {
                                     // no-op until installed
                                 } else {
                                     onPick(option)
@@ -506,6 +511,7 @@ private fun ModelOptionRow(
 /** State-aware trailing control + description for the offline model row. */
 private fun localModelDescription(option: AiModelOption, state: LocalModelState): String = when (state) {
     LocalModelState.NotInstalled -> "${option.sizeLabel ?: "~1 GB"} · tap ⬇ to download"
+    LocalModelState.Downloaded -> "Downloaded · tap to load"
     is LocalModelState.Downloading -> "Downloading… ${(state.progress * 100).toInt()}%"
     is LocalModelState.Failed -> state.message
     LocalModelState.Loading -> "Preparing model…"
@@ -521,7 +527,7 @@ private fun LocalModelStateAction(
     onRemoveRequest: () -> Unit
 ) {
     when (state) {
-        LocalModelState.Ready -> Row(verticalAlignment = Alignment.CenterVertically) {
+        LocalModelState.Ready, LocalModelState.Downloaded -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Offline model installed",

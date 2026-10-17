@@ -108,6 +108,51 @@ class ModelManagerTest {
     }
 
     @Test
+    fun `existing unselected file lands in downloaded`() = runTest {
+        modelFile().parentFile?.mkdirs()
+        modelFile().writeText("dummy")
+        val downloader = FakeDownloader(fail = true)
+        val manager = ModelManager({ modelFile() }, downloader, this, ::fakeEngine, isSelected = { false })
+
+        assertEquals(LocalModelState.Downloaded, manager.state.value)
+        assertNull(manager.engine())
+
+        testScheduler.advanceUntilIdle()
+        assertEquals(LocalModelState.Downloaded, manager.state.value)
+    }
+
+    @Test
+    fun `downloaded model loads without downloading again`() = runTest {
+        modelFile().parentFile?.mkdirs()
+        modelFile().writeText("dummy")
+        val downloader = FakeDownloader(fail = true)
+        val manager = ModelManager({ modelFile() }, downloader, this, ::fakeEngine, isSelected = { false })
+        assertEquals(LocalModelState.Downloaded, manager.state.value)
+
+        manager.ensureReady()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(LocalModelState.Ready, manager.state.value)
+        assertNotNull(manager.engine())
+        assertTrue(downloader.progressCalls.isEmpty())
+    }
+
+    @Test
+    fun `unload keeps downloaded while file remains`() = runTest {
+        modelFile().parentFile?.mkdirs()
+        modelFile().writeText("dummy")
+        val manager = ModelManager({ modelFile() }, FakeDownloader(), this, ::fakeEngine)
+        testScheduler.advanceUntilIdle()
+        assertEquals(LocalModelState.Ready, manager.state.value)
+
+        manager.unloadEngine()
+
+        assertEquals(LocalModelState.Downloaded, manager.state.value)
+        assertNull(manager.engine())
+        assertTrue(modelFile().exists())
+    }
+
+    @Test
     fun `unloadable model file fails but is kept for retry`() = runTest {
         modelFile().parentFile?.mkdirs()
         modelFile().writeText("dummy")

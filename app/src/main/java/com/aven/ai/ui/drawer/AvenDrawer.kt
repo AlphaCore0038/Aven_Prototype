@@ -112,7 +112,7 @@ fun AvenDrawer(
             Text(
                 text = "Aven",
                 fontFamily = LuckyRookieFamily,
-                fontSize = 24.sp,
+                fontSize = 30.sp,
                 color = if (dark) ref.textStrong else MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))

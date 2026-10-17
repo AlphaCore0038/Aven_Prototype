@@ -141,7 +141,10 @@ class AppContainer(context: Context) {
                     val selected = if (isGemma) gemmaModelManager else modelManager
                     val other = if (isGemma) modelManager else gemmaModelManager
                     if (other.engine() != null) other.unloadEngine()
-                    if (selected.isInstalled() && selected.state.value is LocalModelState.NotInstalled) {
+                    if (selected.isInstalled() &&
+                        (selected.state.value is LocalModelState.NotInstalled ||
+                            selected.state.value is LocalModelState.Downloaded)
+                    ) {
                         selected.ensureReady()
                     }
                 }
