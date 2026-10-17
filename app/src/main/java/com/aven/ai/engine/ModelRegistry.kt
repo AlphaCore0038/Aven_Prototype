@@ -47,10 +47,10 @@ class ModelRegistry(
         AiModelOption(
             providerId = LocalEngine.PROVIDER_ID,
             modelId = LocalEngine.MODEL_ID,
-            displayName = "Qwen 2.5 1.5B Uncensored",
+            displayName = "Dolphin 3.0 1B RP Uncensored",
             description = "On-device — private, offline, no keys",
             kind = EngineKind.LOCAL,
-            sizeLabel = "~1 GB"
+            sizeLabel = "~0.7 GB"
         ),
         AiModelOption(
             providerId = LocalEngine.PROVIDER_ID,

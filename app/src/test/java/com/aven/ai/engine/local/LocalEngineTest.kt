@@ -27,7 +27,7 @@ class LocalEngineTest {
     )
 
     @Test
-    fun `buildPrompt uses the qwen chatml template`() {
+    fun `buildPrompt uses the ChatML template for the default model`() {
         val prompt = engine.buildPrompt(request("hello"))
         assertTrue("starts with the system turn", prompt.startsWith("<|im_start|>system\n"))
         assertTrue("contains system instructions", prompt.contains("You are Aven"))
@@ -70,12 +70,12 @@ class LocalEngineTest {
     }
 
     @Test
-    fun `qwen and gemma use different templates`() {
+    fun `default model and gemma use different templates`() {
         val gemmaEngine = LocalEngine(null, LocalEngine.GEMMA_ID)
-        val qwenPrompt = engine.buildPrompt(request("hello"))
+        val defaultPrompt = engine.buildPrompt(request("hello"))
         val gemmaPrompt = gemmaEngine.buildPrompt(request("hello"))
-        assertTrue(qwenPrompt != gemmaPrompt)
-        assertTrue(qwenPrompt.contains("<|im_start|>"))
+        assertTrue(defaultPrompt != gemmaPrompt)
+        assertTrue(defaultPrompt.contains("<|im_start|>"))
         assertTrue(gemmaPrompt.contains("<start_of_turn>"))
     }
 }

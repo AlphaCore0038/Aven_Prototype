@@ -119,10 +119,13 @@ class AppContainer(context: Context) {
     }
 
     init {
-        // One-time: a stored Llama 3.2 selection migrates to the Qwen replacement id.
+        // One-time: stored legacy selections (Llama 3.2, then the Qwen 2.5
+        // replacement) migrate to the Dolphin default. Explicit Gemma/remote
+        // choices are preserved; model files on disk are never deleted.
         applicationScope.launch {
             runCatching {
-                if (settingsRepository.settings.first().defaultModelId == LocalEngine.LEGACY_MODEL_ID) {
+                val stored = settingsRepository.settings.first().defaultModelId
+                if (stored == LocalEngine.LEGACY_MODEL_ID || stored == LocalEngine.QWEN_LEGACY_MODEL_ID) {
                     settingsRepository.setDefaultModel(LocalEngine.MODEL_ID)
                 }
             }

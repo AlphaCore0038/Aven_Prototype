@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * On-device inference via llama.cpp (Qwen 2.5 1.5B Uncensored). Generation runs on a
+ * On-device inference via llama.cpp (Dolphin 3.0 L3.2 1B RP Uncensored). Generation runs on a
  * background thread and streams token pieces through the JNI callback; a
  * cancelled collector stops the native loop on its next token.
  */
@@ -28,7 +28,7 @@ class LocalEngine internal constructor(
     override val id = "${PROVIDER_ID}/$modelId"
     override val displayName = when (modelId) {
         GEMMA_ID -> "Gemma 1B"
-        else -> "Qwen 2.5 1.5B Uncensored"
+        else -> "Dolphin 3.0 1B RP Uncensored"
     }
 
     private val loadedHandle: Long
@@ -97,20 +97,20 @@ class LocalEngine internal constructor(
                 append(GEMMA_START + "model\n")
             }
         } else {
-            // Qwen 2.5 Instruct: ChatML turns plus the assistant generation prompt.
+            // Dolphin 3.0 (Llama 3.2 base): ChatML turns plus the assistant generation prompt.
             buildString {
-                append(QWEN_START + "system\n")
+                append(CHATML_START + "system\n")
                 append(system)
-                append(QWEN_END)
+                append(CHATML_END)
                 history.forEach { message ->
-                    append(QWEN_START + message.role + "\n")
+                    append(CHATML_START + message.role + "\n")
                     append(message.content)
-                    append(QWEN_END)
+                    append(CHATML_END)
                 }
-                append(QWEN_START + "user\n")
+                append(CHATML_START + "user\n")
                 append(request.prompt)
-                append(QWEN_END)
-                append(QWEN_START + "assistant\n")
+                append(CHATML_END)
+                append(CHATML_START + "assistant\n")
             }
         }
     }
@@ -132,21 +132,22 @@ class LocalEngine internal constructor(
 
     companion object {
         const val PROVIDER_ID = "local"
-        const val MODEL_ID = "qwen2.5-1.5b-uncensored"
-        const val MODEL_FILE_NAME = "qwen2.5-1.5b-Q4_K_M.gguf"
+        const val MODEL_ID = "dolphin3.0-l3.2-1b-rp-uncensored"
+        const val MODEL_FILE_NAME = "Dolphin3.0-L3.2-1B_RP_UNCENSORED.gguf"
         const val GGUF_URL =
-            "https://huggingface.co/ElementMerc/qwen2.5-1.5b-uncensored-GGUF/resolve/main/qwen2.5-1.5b-Q4_K_M.gguf"
+            "https://huggingface.co/Novaciano/DOLPHIN3.0-L3.2-1B_RP_UNCENSORED-GGUF/resolve/main/Dolphin3.0-L3.2-1B_RP_UNCENSORED.gguf"
 
-        /** Model id shipped before the Qwen swap; remapped once at startup (migration only). */
+        /** Model ids shipped before the Dolphin default; remapped once at startup (migration only). */
         const val LEGACY_MODEL_ID = "llama-3.2-1b-instruct"
+        const val QWEN_LEGACY_MODEL_ID = "qwen2.5-1.5b-uncensored"
 
         const val GEMMA_ID = "gemma-3-1b-it"
         const val GEMMA_FILE_NAME = "gemma-3-1b-it-Q4_K_M.gguf"
         const val GEMMA_URL =
             "https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf"
 
-        private const val QWEN_START = "<|im_start|>"
-        private const val QWEN_END = "<|im_end|>\n"
+        private const val CHATML_START = "<|im_start|>"
+        private const val CHATML_END = "<|im_end|>\n"
         private const val GEMMA_BOS = "<bos>"
         private const val GEMMA_START = "<start_of_turn>"
         private const val GEMMA_END = "<end_of_turn>\n"
