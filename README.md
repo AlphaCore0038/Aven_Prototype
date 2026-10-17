@@ -1,145 +1,151 @@
 # Aven
 
-A private-first Android AI assistant built with Jetpack Compose. Chat with
-remote models (OpenCode Zen, OpenRouter) or fully on-device with a local
-Llama 3.2 1B model compiled from llama.cpp — no accounts required, keys stored
-in the Android Keystore, and a genuine "private" mode whose messages are never
-listed, searched, or exported.
+**A private-first AI assistant for Android.**
+
+Aven brings remote AI providers and on-device language models into one native Android app. It is built with Kotlin and Jetpack Compose, with an emphasis on privacy, explicit model selection, and a clean chat experience.
 
 ## Features
 
-- **Dark-first Material 3 Compose UI** with a chat welcome view, streaming
-  replies, a model picker, and a settings drawer.
-- **Three generation backends** behind one `AiChatEngine` interface:
-  - OpenCode Zen (`deepseek-v4-flash`) — fast, free.
-  - OpenRouter (`deepseek-v4-flash`, `deepseek-v4-pro`) — same APIs, paid.
-  - Local Llama 3.2 1B (Q4_K_M) via vendored llama.cpp — private, offline.
-- **Honest failures**: no fake output and no silent provider fallback. A
-  missing key or uninstalled model surfaces a clear, user-actionable error.
-- **Streaming**: SSE parsing for remote providers, token-level streaming from
-  the native bridge for the local model, cancellable mid-generation.
-- **Room persistence**: conversations and messages survive restarts; a reply
-  is persisted when generation completes or is stopped.
-- **Security**: API keys live in an AES-GCM keystore (Android Keystore-backed);
-  personal defaults are injected only into debug builds from gitignored
-  `local.properties` and never appear in release builds or version control.
-
-## Architecture
-
-```
-com.aven.ai
-├── ui/                      Jetpack Compose screens + components
-│   ├── chat/                ChatScreen, ChatController (state machine),
-│   │                        ChatViewModel, WelcomeView, MessageRow
-│   ├── settings/            Settings + API Keys screens, SettingsViewModel
-│   ├── drawer/              Navigation drawer
-│   ├── navigation/          NavHost + destinations
-│   └── components/          Composer, logo, shared widgets
-├── engine/
-│   ├── AiChatEngine.kt      Generation contract (Flow<String> streaming)
-│   ├── ModelRegistry.kt     Model catalogue + explicit engine selection
-│   ├── remote/              OpenAI-compatible SSE engines (Zen, OpenRouter),
-│   │                        SseParser, DeltaExtractor
-│   └── local/               LlamaNative (JNI), LocalEngine (chat template),
-│                            ModelManager (install/download/verify state
-│                            machine), ModelDownloader
-├── data/
-│   ├── local/               Room database, entities, DAO
-│   ├── security/            KeystoreCrypto (AES-GCM), KeyManager
-│   ├── settings/            DataStore-backed settings/profile repositories
-│   └── network/             OkHttp client factory
-├── di/AppContainer.kt       Manual dependency injection (no DI framework)
-├── AvenApplication.kt       Seeding of debug-only default keys
-└── MainActivity.kt
-app/src/main/cpp/
-├── CMakeLists.txt           CMake entry point
-├── aven_llama.cpp           JNI bridge to llama.cpp (greedy sampling,
-│                            streaming, cancellation)
-└── llama.cpp/               Vendored llama.cpp v0.1.2 (git submodule clone)
-```
-
-Design decisions:
-
-- **No DI framework, no Retrofit, no Hilt/Koin.** Dependencies are built once in
-  `AppContainer` and passed explicitly.
-- **Room is the single source of truth** for messages; streaming text exists
-  only while a generation is in flight.
-- **No silent fallback.** `ModelRegistry.engineForSettings` returns the saved
-  selection when its backend is usable, the first usable option otherwise, and
-  `UnavailableEngine` only when nothing is configured.
-- **Capability-driven UI.** The model picker shows the local model's live state
-  (not installed / downloading / ready / failed) and installs on tap.
+- **Native Android UI** — Jetpack Compose, Material 3, dark-first design, and a navigation drawer.
+- **Multiple AI providers** — connect to OpenCode Zen and OpenRouter.
+- **On-device AI** — run Llama 3.2 1B locally using GGUF quantization and llama.cpp.
+- **Streaming responses** — see generated text as it arrives, with support for cancelling generation.
+- **Persistent conversations** — chats and messages are stored locally using Room.
+- **Private chat mode** — private conversations are excluded from normal chat listing, search, and export.
+- **Secure API-key storage** — API keys are protected using Android Keystore-backed encryption.
+- **Model management** — select remote models or manage the installation state of the local model.
+- **Settings and personalization** — configure providers, models, themes, and profile preferences.
+- **Clear error handling** — unavailable providers and missing configuration produce actionable errors rather than silently switching models.
 
 ## Tech stack
 
-- Kotlin 2.4, Jetpack Compose (BOM 2026.08), Material 3, Navigation Compose
-- Room 2.8, DataStore 1.2, OkHttp 5.5, kotlinx.serialization/coroutines
-- AGP 9.3 (built-in Kotlin), NDK 28.2, CMake 3.22, llama.cpp v0.1.2
-- Tests: JUnit 4, Robolectric, kotlinx-coroutines-test, MockWebServer
+| Area | Technologies |
+|---|---|
+| Language | Kotlin |
+| UI | Jetpack Compose, Material 3 |
+| Navigation | Navigation Compose |
+| Local database | Room |
+| Settings | DataStore |
+| Networking | OkHttp |
+| Asynchronous operations | Kotlin Coroutines and Flow |
+| Serialization | kotlinx.serialization |
+| On-device inference | llama.cpp, JNI, CMake, Android NDK |
+| Testing | JUnit, Robolectric, MockWebServer, coroutine test utilities |
 
-## Build & run
+## Architecture
 
-Requirements: JDK 17+, Android SDK (platform 37), NDK 28.2.13676358 and
-CMake 3.22.1 (AGP auto-installs them on first build when the SDK license is
-accepted).
+Aven separates its UI, conversation engine, provider integrations, and data storage.
+
+```text
+com.aven.ai/
+├── ui/
+│   ├── chat/          Chat UI and conversation state
+│   ├── settings/      Settings and API-key management
+│   ├── drawer/        Navigation drawer
+│   ├── navigation/    Navigation destinations
+│   └── components/    Shared UI components
+├── engine/
+│   ├── AiChatEngine   Common generation interface
+│   ├── remote/        Remote provider integrations
+│   └── local/         Local inference and model management
+├── data/
+│   ├── local/         Room database and DAOs
+│   ├── security/      API-key encryption and key management
+│   ├── settings/      Settings and profile repositories
+│   └── network/       HTTP client configuration
+├── di/                Application dependency container
+└── MainActivity.kt
+```
+
+Native inference code is located under `app/src/main/cpp/`, including the JNI bridge and llama.cpp source.
+
+## Privacy and security
+
+- API keys are stored using Android Keystore-backed encryption.
+- Personal default API keys can be supplied through the local `local.properties` file for debug builds.
+- API keys and local model files are excluded from version control.
+- Remote providers require network access; local inference can run without sending prompts to a remote AI provider.
+- Private chat mode keeps conversations out of the app's normal listing, search, and export flows.
+
+**Note:** Using a local model does not automatically make every app operation offline. Remote providers, model downloads, and other network-dependent operations still require connectivity.
+
+## Getting started
+
+### Requirements
+
+- Android Studio with a compatible Android SDK
+- JDK 17 or newer
+- Android NDK 28.2.13676358
+- CMake 3.22.1
+- An ARM64 Android device for the configured native inference build
+
+### Build
+
+Clone the repository:
 
 ```bash
-# First build (compiles llama.cpp for arm64-v8a; takes several minutes)
+git clone https://github.com/AlphaCore0038/Aven_Prototype.git
+cd Aven_Prototype
+```
+
+Build the debug APK:
+
+```bash
 ./gradlew assembleDebug
+```
 
-# Run unit tests (54 tests; Keystore tests are device-only and skipped)
+Run the unit tests:
+
+```bash
 ./gradlew testDebugUnitTest
+```
 
-# Install on a connected arm64 device
+On Windows, use `gradlew.bat` instead of `./gradlew`.
+
+To install the generated APK on a connected device:
+
+```bash
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The APK targets `arm64-v8a` only (`app/build.gradle.kts` → `defaultConfig.ndk`).
+The current native build targets `arm64-v8a`.
 
-### API keys (debug builds only)
+## Configure API keys
 
-Add your personal defaults to `local.properties` (gitignored):
+You can configure API keys in the app's settings. For optional debug-build defaults, add your own keys to the root `local.properties` file:
 
 ```properties
-AVEN_DEFAULT_ZEN_API_KEY=sk-...
-AVEN_DEFAULT_OPENROUTER_API_KEY=sk-or-...
+AVEN_DEFAULT_ZEN_API_KEY=your_zen_api_key
+AVEN_DEFAULT_OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
-On first launch these are seeded into the Keystore-backed secure store. You can
-also set or replace keys at runtime in **Settings → API Keys**. Release builds
-carry empty defaults and require keys to be entered on-device.
+Never commit real API keys or credentials to GitHub. Release builds should use keys entered by the user rather than personal development defaults.
 
-### Local model
+## Local AI model
 
-- Default behavior: the app downloads the ~780 MB GGUF
-  (`Llama-3.2-1B-Instruct-Q4_K_M.gguf`) into app-private storage on first use
-  via the model picker or Settings.
-- To bundle the model into the APK instead, set `AVEN_BUNDLE_MODEL=true` in
-  `local.properties` and place the file at
-  `app/src/main/assets/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf`.
-  (Packaging it into `assets/` is a TODO — the flag is plumbed through
-  `BuildConfig.BUNDLE_MODEL` but the asset unpack path is not wired yet.)
+Aven supports Llama 3.2 1B Instruct in GGUF format through llama.cpp.
 
-## Roadmap / status
+The default model configuration uses the `Q4_K_M` quantization. The model is downloaded to app-private storage when needed, and its availability is managed by the app.
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| 1 | App scaffold, theme, navigation, all screens | Done |
-| 2 | Room data layer, Keystore crypto, settings/profile repos | Done |
-| 3 | Conversation engine: ChatController, streaming UI, Room as source of truth | Done |
-| 4 | Remote AI: Zen + OpenRouter engines, SSE parsing, API Keys screen | Done |
-| 5 | Local AI: llama.cpp build, JNI bridge, model manager, on-device engine | Done |
+Local inference depends on device memory, processing capability, and the model's storage requirements. Download size and generation speed vary with the model build and device.
 
 ## Testing
 
-Unit tests cover the data layer (Room DAO, settings, keystore-crypto helpers),
-the conversation state machine, SSE parsing, the OpenAI-compatible engine
-(MockWebServer), the model registry, the local-model manager state machine, and
-the chat-template builder. Live network calls, real model downloads, and
-Keystore behavior require a physical device and are not exercised by the JVM
-test suite.
+The JVM test suite covers areas including:
 
-## License
+- Database and repository behavior
+- Conversation state management
+- Remote response-stream parsing
+- Remote engine behavior using a mock HTTP server
+- Model selection and local-model management
+- Chat-template construction
 
-See `app/src/main/cpp/llama.cpp/LICENSE` for llama.cpp's license (MIT) and the
-GGML submodule license under `app/src/main/cpp/llama.cpp/ggml/LICENSE`.
+Tests requiring a physical device, live network access, real model downloads, or actual Android Keystore behavior need separate device-level verification.
+
+## Project status
+
+Aven's core application features and primary UI are implemented. The repository includes the Android application source, native inference integration, and automated tests.
+
+## Third-party licenses
+
+Aven includes llama.cpp and related native components. Refer to the license files distributed with those components for their applicable terms.
