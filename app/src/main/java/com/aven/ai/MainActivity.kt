@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     var splashFinished by rememberSaveable { mutableStateOf(false) }
                     LaunchedEffect(Unit) {
-                        delay(750)
+                        delay(1000)
                         splashFinished = true
                     }
                     Box(modifier = Modifier.fillMaxSize()) {
