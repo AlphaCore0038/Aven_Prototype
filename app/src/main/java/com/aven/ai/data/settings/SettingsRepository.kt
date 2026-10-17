@@ -3,6 +3,7 @@ package com.aven.ai.data.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -17,7 +18,9 @@ class SettingsRepository(private val context: Context) {
     data class AppSettings(
         val theme: String = THEME_DARK,
         val defaultProviderId: String? = null,
-        val defaultModelId: String? = null
+        val defaultModelId: String? = null,
+        /** True once the first-launch onboarding has been finished or skipped. */
+        val onboardingCompleted: Boolean = false
     ) {
         companion object {
             const val THEME_SYSTEM = "system"
@@ -30,7 +33,8 @@ class SettingsRepository(private val context: Context) {
         AppSettings(
             theme = prefs[KEY_THEME] ?: AppSettings.THEME_DARK,
             defaultProviderId = prefs[KEY_DEFAULT_PROVIDER],
-            defaultModelId = prefs[KEY_DEFAULT_MODEL]
+            defaultModelId = prefs[KEY_DEFAULT_MODEL],
+            onboardingCompleted = prefs[KEY_ONBOARDING_COMPLETED] ?: false
         )
     }
 
@@ -44,6 +48,11 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setDefaultModel(modelId: String) {
         context.settingsDataStore.edit { it[KEY_DEFAULT_MODEL] = modelId }
+    }
+
+    /** Marks the first-launch onboarding as done (finished or skipped). */
+    suspend fun setOnboardingCompleted() {
+        context.settingsDataStore.edit { it[KEY_ONBOARDING_COMPLETED] = true }
     }
 
     /** Clears the saved default provider/model (e.g. when it is deleted). */
@@ -63,5 +72,6 @@ class SettingsRepository(private val context: Context) {
         val KEY_THEME = stringPreferencesKey("theme")
         val KEY_DEFAULT_PROVIDER = stringPreferencesKey("default_provider_id")
         val KEY_DEFAULT_MODEL = stringPreferencesKey("default_model_id")
+        val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 }

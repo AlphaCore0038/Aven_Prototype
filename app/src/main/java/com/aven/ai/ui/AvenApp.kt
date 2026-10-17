@@ -8,6 +8,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -16,9 +17,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aven.ai.AvenApplication
+import com.aven.ai.data.settings.SettingsRepository
 import com.aven.ai.ui.drawer.AvenDrawer
 import com.aven.ai.ui.navigation.AvenNavHost
 import com.aven.ai.ui.navigation.Destinations
+import com.aven.ai.ui.onboarding.GateState
+import com.aven.ai.ui.onboarding.OnboardingFlow
+import com.aven.ai.ui.onboarding.StartGate
+import com.aven.ai.ui.onboarding.isExistingInstall
+import com.aven.ai.ui.onboarding.startGate
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Cap on how many recent chats the drawer lists (pinned are always all shown). */
@@ -31,6 +40,42 @@ private const val MAX_RECENT_CHATS = 50
  */
 @Composable
 fun AvenApp() {
+    val app = LocalContext.current.applicationContext as AvenApplication
+
+    // One-shot first-launch decision, resolved while the splash still covers
+    // the screen. While it is unresolved (or while onboarding is shown) the
+    // drawer, navigation graph and app BackHandler are not composed at all.
+    val gateState by produceState<GateState?>(null, app) {
+        val existing = isExistingInstall(app)
+        value = combine(
+            app.container.settingsRepository.settings,
+            app.container.userProfileRepository.profile
+        ) { settings, profile ->
+            GateState(
+                gate = startGate(settings.onboardingCompleted, existing),
+                name = profile.name,
+                dark = settings.theme != SettingsRepository.AppSettings.THEME_LIGHT
+            )
+        }.first()
+    }
+    var onboardingFinished by remember { mutableStateOf(false) }
+    val state = gateState
+    if (state == null || (state.gate == StartGate.Onboarding && !onboardingFinished)) {
+        if (state != null && state.gate == StartGate.Onboarding) {
+            OnboardingFlow(
+                settingsRepository = app.container.settingsRepository,
+                userProfileRepository = app.container.userProfileRepository,
+                remoteModelRepository = app.container.remoteModelRepository,
+                keyManager = app.container.keyManager,
+                httpClient = app.container.httpClient,
+                initialName = state.name,
+                dark = state.dark,
+                onFinished = { onboardingFinished = true }
+            )
+        }
+        return
+    }
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -44,8 +89,6 @@ fun AvenApp() {
             if (isOnStart) activity.finishAndRemoveTask()
         }
     }
-
-    val app = LocalContext.current.applicationContext as AvenApplication
 
     val conversations by app.container.chatDao.observeVisibleConversations()
         .collectAsStateWithLifecycle(initialValue = emptyList())

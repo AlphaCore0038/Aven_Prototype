@@ -291,7 +291,7 @@ fun ModelEditScreen(
  * Success means the stream completed without error — even with no visible
  * text, since this validates connectivity/authentication, not generation.
  * Uses chat's default retry policy; only the overall timeout is test-specific.
- */private suspend fun testConnection(
+ */internal suspend fun testConnection(
     providerName: String,
     baseUrl: String,
     modelId: String,

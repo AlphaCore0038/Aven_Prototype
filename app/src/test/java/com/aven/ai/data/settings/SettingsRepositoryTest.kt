@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -45,6 +46,17 @@ class SettingsRepositoryTest {
         assertEquals(SettingsRepository.AppSettings.THEME_DARK, updated.theme)
         assertEquals("zen", updated.defaultProviderId)
         assertEquals("deepseek-v4-flash", updated.defaultModelId)
+    }
+
+    @Test
+    fun `onboarding flag defaults to false and persists once set`() = runTest {
+        val repo = SettingsRepository(context)
+        assertFalse(repo.settings.first().onboardingCompleted)
+
+        repo.setOnboardingCompleted()
+
+        assertTrue(repo.settings.first().onboardingCompleted)
+        assertTrue(SettingsRepository(context).settings.first().onboardingCompleted)
     }
 
     @Test
