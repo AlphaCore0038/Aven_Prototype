@@ -4,5 +4,4 @@
     <string name="welcome_title">What can I help you with today?</string>
     <string name="composer_hint">Ask anything…</string>
     <string name="composer_hint_chat">Message Aven…</string>
-    <string name="footer_disclaimer">Aven can make mistakes. Check important info.</string>
 </resources>

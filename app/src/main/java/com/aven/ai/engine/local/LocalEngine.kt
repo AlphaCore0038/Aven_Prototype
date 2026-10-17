@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * On-device inference via llama.cpp (Llama 3.2 1B). Generation runs on a
+ * On-device inference via llama.cpp (Qwen 2.5 1.5B Uncensored). Generation runs on a
  * background thread and streams token pieces through the JNI callback; a
  * cancelled collector stops the native loop on its next token.
  */
@@ -28,7 +28,7 @@ class LocalEngine internal constructor(
     override val id = "${PROVIDER_ID}/$modelId"
     override val displayName = when (modelId) {
         GEMMA_ID -> "Gemma 1B"
-        else -> "Llama 3.2 1B"
+        else -> "Qwen 2.5 1.5B Uncensored"
     }
 
     private val loadedHandle: Long
@@ -97,29 +97,23 @@ class LocalEngine internal constructor(
                 append(GEMMA_START + "model\n")
             }
         } else {
-            val conversation = buildString {
-                history.forEach { message ->
-                    append(header(message.role))
-                    append(message.content)
-                    append(EOT)
-                }
-            }
+            // Qwen 2.5 Instruct: ChatML turns plus the assistant generation prompt.
             buildString {
-                append(BOS)
-                append(header("system"))
+                append(QWEN_START + "system\n")
                 append(system)
-                append(EOT)
-                append(conversation)
-                append(header("user"))
+                append(QWEN_END)
+                history.forEach { message ->
+                    append(QWEN_START + message.role + "\n")
+                    append(message.content)
+                    append(QWEN_END)
+                }
+                append(QWEN_START + "user\n")
                 append(request.prompt)
-                append(EOT)
-                append(header("assistant"))
-                append("\n")
+                append(QWEN_END)
+                append(QWEN_START + "assistant\n")
             }
         }
     }
-
-    private fun header(role: String) = "<|start_header_id|>$role<|end_header_id|>\n\n"
 
     private fun truncateHistory(messages: List<MessageEntity>): List<MessageEntity> {
         val window = messages.takeLast(MAX_HISTORY_MESSAGES)
@@ -138,18 +132,21 @@ class LocalEngine internal constructor(
 
     companion object {
         const val PROVIDER_ID = "local"
-        const val MODEL_ID = "llama-3.2-1b-instruct"
-        const val MODEL_FILE_NAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+        const val MODEL_ID = "qwen2.5-1.5b-uncensored"
+        const val MODEL_FILE_NAME = "qwen2.5-1.5b-Q4_K_M.gguf"
         const val GGUF_URL =
-            "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+            "https://huggingface.co/ElementMerc/qwen2.5-1.5b-uncensored-GGUF/resolve/main/qwen2.5-1.5b-Q4_K_M.gguf"
+
+        /** Model id shipped before the Qwen swap; remapped once at startup (migration only). */
+        const val LEGACY_MODEL_ID = "llama-3.2-1b-instruct"
 
         const val GEMMA_ID = "gemma-3-1b-it"
         const val GEMMA_FILE_NAME = "gemma-3-1b-it-Q4_K_M.gguf"
         const val GEMMA_URL =
             "https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf"
 
-        private const val BOS = "<|begin_of_text|>"
-        private const val EOT = "<|eot_id|>"
+        private const val QWEN_START = "<|im_start|>"
+        private const val QWEN_END = "<|im_end|>\n"
         private const val GEMMA_BOS = "<bos>"
         private const val GEMMA_START = "<start_of_turn>"
         private const val GEMMA_END = "<end_of_turn>\n"

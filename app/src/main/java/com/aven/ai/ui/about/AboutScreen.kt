@@ -94,7 +94,7 @@ fun AboutScreen(
             )
             Spacer(modifier = Modifier.height(40.dp))
             Text(
-                text = "Local AI powered by\nLlama 3.2 1B Instruct",
+                text = "Local AI powered by\non-device models",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center

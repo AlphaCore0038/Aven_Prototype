@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
  * Manual dependency-injection container (no DI framework).
@@ -61,7 +62,7 @@ class AppContainer(context: Context) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
-    /** The on-device model lifecycle: download, verify, load, remove — Llama. */
+    /** The on-device model lifecycle: download, verify, load, remove — the primary local model. */
     val modelManager: ModelManager by lazy {
         ModelManager(
             modelFile = { File(applicationContext.filesDir, "models/${LocalEngine.MODEL_FILE_NAME}") },
@@ -76,7 +77,7 @@ class AppContainer(context: Context) {
         )
     }
 
-    /** Gemma 3 1B — same infrastructure, separate file, never resident together with Llama. */
+    /** Gemma 3 1B — same infrastructure, separate file, never resident together with the primary model. */
     val gemmaModelManager: ModelManager by lazy {
         ModelManager(
             modelFile = { File(applicationContext.filesDir, "models/${LocalEngine.GEMMA_FILE_NAME}") },
@@ -96,7 +97,15 @@ class AppContainer(context: Context) {
         else -> modelManager
     }
 
-    private val httpDownloader: ModelDownloader by lazy { OkHttpModelDownloader(httpClient) }
+    /**
+     * Downloads never hit the API call timeout (a >3 min GGUF stream would be
+     * killed mid-transfer). Connect/read/write timeouts still apply.
+     */
+    private val httpDownloader: ModelDownloader by lazy {
+        OkHttpModelDownloader(
+            httpClient.newBuilder().callTimeout(0, TimeUnit.MILLISECONDS).build()
+        )
+    }
 
     val modelRegistry: ModelRegistry by lazy {
         ModelRegistry(
@@ -110,6 +119,15 @@ class AppContainer(context: Context) {
     }
 
     init {
+        // One-time: a stored Llama 3.2 selection migrates to the Qwen replacement id.
+        applicationScope.launch {
+            runCatching {
+                if (settingsRepository.settings.first().defaultModelId == LocalEngine.LEGACY_MODEL_ID) {
+                    settingsRepository.setDefaultModel(LocalEngine.MODEL_ID)
+                }
+            }
+        }
+
         // Keep only the selected local model resident in RAM.
         applicationScope.launch {
             settingsRepository.settings

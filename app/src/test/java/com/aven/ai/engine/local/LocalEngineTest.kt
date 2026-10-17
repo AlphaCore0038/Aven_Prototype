@@ -27,12 +27,12 @@ class LocalEngineTest {
     )
 
     @Test
-    fun `buildPrompt uses the llama 3-2 chat template`() {
+    fun `buildPrompt uses the qwen chatml template`() {
         val prompt = engine.buildPrompt(request("hello"))
-        assertTrue("starts with BOS + system header", prompt.startsWith("<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"))
+        assertTrue("starts with the system turn", prompt.startsWith("<|im_start|>system\n"))
         assertTrue("contains system instructions", prompt.contains("You are Aven"))
-        assertTrue("contains the user message", prompt.contains("<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nhello<|eot_id|>"))
-        assertTrue("ends with assistant header then a newline", prompt.endsWith("assistant<|end_header_id|>\n\n\n"))
+        assertTrue("contains the user message", prompt.contains("<|im_start|>user\nhello<|im_end|>\n"))
+        assertTrue("ends with the assistant generation prompt", prompt.endsWith("<|im_start|>assistant\n"))
     }
 
     @Test
@@ -43,7 +43,7 @@ class LocalEngineTest {
         val userIndex = prompt.indexOf("old question")
         val assistantIndex = prompt.indexOf("new")
         assertTrue(userIndex in 0 until assistantIndex)
-        assertTrue(prompt.contains("<|start_header_id|>user<|end_header_id|>"))
+        assertTrue(prompt.contains("<|im_start|>user\n"))
     }
 
     @Test
@@ -66,16 +66,16 @@ class LocalEngineTest {
         assertTrue("gemma starts with bos", prompt.startsWith("<bos>"))
         assertTrue("gemma uses start_of_turn", prompt.contains("<start_of_turn>user"))
         assertTrue("gemma ends with model turn", prompt.trimEnd().endsWith("<start_of_turn>model"))
-        assertTrue("gemma does not use llama header", !prompt.contains("<|start_header_id|>"))
+        assertTrue("gemma does not use chatml markers", !prompt.contains("<|im_start|>"))
     }
 
     @Test
-    fun `llama and gemma use different templates`() {
+    fun `qwen and gemma use different templates`() {
         val gemmaEngine = LocalEngine(null, LocalEngine.GEMMA_ID)
-        val llamaPrompt = engine.buildPrompt(request("hello"))
+        val qwenPrompt = engine.buildPrompt(request("hello"))
         val gemmaPrompt = gemmaEngine.buildPrompt(request("hello"))
-        assertTrue(llamaPrompt != gemmaPrompt)
-        assertTrue(llamaPrompt.contains("<|start_header_id|>"))
+        assertTrue(qwenPrompt != gemmaPrompt)
+        assertTrue(qwenPrompt.contains("<|im_start|>"))
         assertTrue(gemmaPrompt.contains("<start_of_turn>"))
     }
 }

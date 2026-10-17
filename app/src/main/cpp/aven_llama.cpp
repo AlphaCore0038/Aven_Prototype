@@ -348,12 +348,12 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerateChat(JNIEnv * env, jobje
     const char * tmpl = llama_model_chat_template(aven->model, nullptr);
     std::string formatted;
     bool usedTemplate = false;
+    // Estimate buffer: 2 * total chars + 512
+    size_t totalLen = 0;
+    for (auto & m : chat) {
+        totalLen += strlen(m.role) + strlen(m.content) + 32;
+    }
     if (tmpl) {
-        // Estimate buffer: 2 * total chars + 512
-        size_t totalLen = 0;
-        for (auto & m : chat) {
-            totalLen += strlen(m.role) + strlen(m.content) + 32;
-        }
         std::vector<char> buf(totalLen * 2 + 512);
         int32_t res = llama_chat_apply_template(tmpl, chat.data(), chat.size(), true, buf.data(), (int32_t) buf.size());
         if (res < 0) {
@@ -364,6 +364,28 @@ Java_com_aven_ai_engine_local_LlamaNative_nativeGenerateChat(JNIEnv * env, jobje
         if (res >= 0) {
             formatted.assign(buf.data(), res);
             usedTemplate = true;
+        }
+    }
+    // ChatML fallback for template-less ChatML vocabs (e.g. Qwen repacks).
+    if (!usedTemplate) {
+        // Some GGUFs ship without tokenizer.chat_template (community repacks
+        // often omit it). Probe for the ChatML token and use llama.cpp's
+        // built-in "chatml" so Qwen-family models get the right prompt format.
+        const llama_vocab * probe_vocab = llama_model_get_vocab(aven->model);
+        const char * im_start = "<|im_start|>";
+        llama_token probe = 0;
+        if (llama_tokenize(probe_vocab, im_start, (int32_t) strlen(im_start), &probe, 1, false, true) == 1) {
+            std::vector<char> buf(totalLen * 2 + 512);
+            int32_t res = llama_chat_apply_template("chatml", chat.data(), chat.size(), true, buf.data(), (int32_t) buf.size());
+            if (res > (int32_t) buf.size()) {
+                // Apply returns the exact rendered length; grow once if the estimate was short.
+                buf.resize(res);
+                res = llama_chat_apply_template("chatml", chat.data(), chat.size(), true, buf.data(), (int32_t) buf.size());
+            }
+            if (res >= 0) {
+                formatted.assign(buf.data(), res);
+                usedTemplate = true;
+            }
         }
     }
     // Fallback to manual if no template or apply failed

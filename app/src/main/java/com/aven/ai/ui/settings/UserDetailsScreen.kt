@@ -1,6 +1,7 @@
 package com.aven.ai.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +10,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerState
@@ -23,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,8 +53,9 @@ import java.util.Locale
 private const val DATE_FORMAT = "dd/MM/yyyy"
 
 /**
- * Edit the user's stored details (name / date of birth / email). Every change
- * is saved immediately; the name is displayed in the chat welcome greeting.
+ * Edit the user's stored details (name / date of birth / email / avatar colour).
+ * Every change is saved immediately; the name is displayed in the chat welcome
+ * greeting and the avatar colour is shown in the sidebar.
  *
  * Each field keeps local state so typing stays instant (no round-trip through
  * the DataStore flow per keystroke); [LaunchedEffect] re-syncs local state if
@@ -168,6 +175,32 @@ fun UserDetailsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 6.dp)
         )
+
+        Text(
+            text = "Avatar Colour",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+        )
+
+        UserProfileRepository.AVATAR_COLORS.chunked(4).forEach { rowColors ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowColors.forEach { argb ->
+                    AvatarColorSwatch(
+                        argb = argb,
+                        selected = profile.avatarColor == argb,
+                        onClick = {
+                            scope.launch { userProfileRepository.setAvatarColor(argb) }
+                        }
+                    )
+                }
+            }
+        }
     }
 
     if (showDatePicker) {
@@ -214,5 +247,30 @@ fun UserDetailsScreen(
                 )
             }
         )
+    }
+}
+
+@Composable
+private fun AvatarColorSwatch(
+    argb: Int,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color(argb),
+        modifier = Modifier.size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
     }
 }

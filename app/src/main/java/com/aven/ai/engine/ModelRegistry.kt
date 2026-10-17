@@ -24,6 +24,7 @@ data class AiModelOption(
     val description: String,
     val kind: EngineKind,
     val baseUrl: String? = null,
+    val sizeLabel: String? = null,
 )
 
 /**
@@ -46,16 +47,18 @@ class ModelRegistry(
         AiModelOption(
             providerId = LocalEngine.PROVIDER_ID,
             modelId = LocalEngine.MODEL_ID,
-            displayName = "Llama 3.2 1B",
+            displayName = "Qwen 2.5 1.5B Uncensored",
             description = "On-device — private, offline, no keys",
-            kind = EngineKind.LOCAL
+            kind = EngineKind.LOCAL,
+            sizeLabel = "~1 GB"
         ),
         AiModelOption(
             providerId = LocalEngine.PROVIDER_ID,
             modelId = LocalEngine.GEMMA_ID,
             displayName = "Gemma 1B",
             description = "Google Gemma 3 1B — Local",
-            kind = EngineKind.LOCAL
+            kind = EngineKind.LOCAL,
+            sizeLabel = "~0.8 GB"
         )
     )
 

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -72,7 +71,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -184,10 +182,6 @@ fun ChatScreen(
         }
     } ?: "No model selected"
 
-    // ponytail: safeDrawing.max(ime, nav) is single source; footer hidden when IME visible
-    // to keep composer 8dp above keyboard instead of footer-height above.
-    val isImeVisible = WindowInsets.isImeVisible
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -271,18 +265,6 @@ fun ChatScreen(
             isPrivate = isPrivate,
             dark = dark
         )
-
-        if (!isImeVisible) {
-            Text(
-                text = stringResource(R.string.footer_disclaimer),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp)
-            )
-        }
     }
 
     if (modelSheetOpen) {
@@ -457,7 +439,7 @@ private fun ModelOptionRow(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = if (isLocal) localModelDescription(localModelState) else option.description,
+                        text = if (isLocal) localModelDescription(option, localModelState) else option.description,
                         fontSize = 13.sp,
                         fontFamily = FontFamily.Default,
                         fontWeight = FontWeight.Normal,
@@ -481,6 +463,7 @@ private fun ModelOptionRow(
                 if (isLocal) {
                     LocalModelStateAction(
                         state = localModelState,
+                        sizeLabel = option.sizeLabel,
                         onInstall = onInstallLocal,
                         onCancel = onCancelLocalDownload,
                         onRemoveRequest = { confirmRemove = true }
@@ -504,7 +487,7 @@ private fun ModelOptionRow(
             title = { Text("Delete offline model?") },
             text = {
                 Text(
-                    "This removes the Llama 3.2 1B files (~0.8 GB). " +
+                    "This removes the ${option.displayName} files (${option.sizeLabel ?: "~1 GB"}). " +
                         "You can download it again anytime."
                 )
             },
@@ -521,8 +504,8 @@ private fun ModelOptionRow(
 }
 
 /** State-aware trailing control + description for the offline model row. */
-private fun localModelDescription(state: LocalModelState): String = when (state) {
-    LocalModelState.NotInstalled -> "~0.8 GB · tap ⬇ to download"
+private fun localModelDescription(option: AiModelOption, state: LocalModelState): String = when (state) {
+    LocalModelState.NotInstalled -> "${option.sizeLabel ?: "~1 GB"} · tap ⬇ to download"
     is LocalModelState.Downloading -> "Downloading… ${(state.progress * 100).toInt()}%"
     is LocalModelState.Failed -> state.message
     LocalModelState.Loading -> "Preparing model…"
@@ -532,6 +515,7 @@ private fun localModelDescription(state: LocalModelState): String = when (state)
 @Composable
 private fun LocalModelStateAction(
     state: LocalModelState,
+    sizeLabel: String?,
     onInstall: () -> Unit,
     onCancel: () -> Unit,
     onRemoveRequest: () -> Unit
@@ -565,7 +549,7 @@ private fun LocalModelStateAction(
         else -> IconButton(onClick = onInstall) {
             Icon(
                 imageVector = Icons.Default.Download,
-                contentDescription = "Download model (~0.8 GB)",
+                contentDescription = "Download model (${sizeLabel ?: "~1 GB"})",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )

@@ -154,13 +154,19 @@ class ModelRegistryTest {
     }
 
     @Test
-    fun `local section contains both llama and gemma`() {
+    fun `local section contains both qwen and gemma`() {
         val options = registry().localOptions()
         assertTrue(options.any { it.modelId == LocalEngine.MODEL_ID })
         assertTrue(options.any { it.modelId == LocalEngine.GEMMA_ID })
         assertEquals(2, options.size)
-        assertTrue(options.any { it.displayName == "Llama 3.2 1B" })
+        assertTrue(options.any { it.displayName == "Qwen 2.5 1.5B Uncensored" })
         assertTrue(options.any { it.displayName == "Gemma 1B" })
+        assertFalse(
+            "the replaced Llama entry must be gone",
+            options.any { it.modelId == LocalEngine.LEGACY_MODEL_ID }
+        )
+        assertEquals("~1 GB", options.first { it.modelId == LocalEngine.MODEL_ID }.sizeLabel)
+        assertEquals("~0.8 GB", options.first { it.modelId == LocalEngine.GEMMA_ID }.sizeLabel)
     }
 
     @Test
