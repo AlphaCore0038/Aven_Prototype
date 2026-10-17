@@ -1,16 +1,37 @@
+# IntelliJ / Android Studio
 *.iml
-.gradle
+/.idea/
+
+/.gradle/
 /local.properties
-/.idea
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-/.env
+
+# Build outputs
+/build/
+/app/build/
+/captures/
+
+# Native build artifacts
+.externalNativeBuild/
+.cxx/
+
+# Environment and secrets
 .env
-app/build
-app/src/main/assets/models/
+.env.*
+
+# Local AI models
+/app/src/main/assets/models/
+
+# Signing keys
 *.keystore
-!debug.keystore
+*.jks
+*.p12
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local AI coding tools
+/.opencode/
+
+# UI design references
+/UI_type/
