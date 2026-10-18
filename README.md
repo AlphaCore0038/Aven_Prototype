@@ -41,7 +41,7 @@ Remote models are configured by the user in the app. Compatibility depends on th
 
 ### Try Aven
 
-**[Download Aven 1.2.8 APK](https://github.com/AlphaCore0038/Aven_Prototype/releases/download/v1.2.8/app-release.apk)**
+**[Download Aven 1.2.8 APK](https://raw.githubusercontent.com/AlphaCore0038/Aven_Prototype/main/app-release.apk)**
 
 If you received an APK directly, install it on your Android device. Android may ask you to allow installation from that source. Only install APKs from a source you trust.
 
