@@ -2,40 +2,40 @@
 
 **A native Android AI chat app built around choice, privacy, and on-device AI.**
 
-Aven brings remote AI providers and local language models into one Android application. Choose how you want to chat, select your model, and keep your conversations organized in a clean, native interface.
+Aven brings remote AI models and local language models together in one Android app. Choose a model, configure a remote provider or run inference directly on your device, and manage conversations in a clean native interface.
 
-Built with Kotlin and Jetpack Compose, Aven combines remote AI integrations with on-device inference powered by `llama.cpp`.
+Built with Kotlin and Jetpack Compose, Aven combines configurable remote endpoints with on-device inference powered by `llama.cpp`.
 
-## What Aven Offers
+## Features
 
-- **Multiple AI providers** — connect to OpenCode Zen and OpenRouter.
-- **On-device AI** — run Llama 3.2 1B Instruct locally using GGUF and `llama.cpp`.
-- **Streaming responses** — watch responses appear as they're generated, with the ability to cancel generation.
-- **Conversation history** — keep chats and messages stored locally using Room.
-- **Private chat mode** — keep private conversations out of the normal chat listing, search, and export flows.
-- **Model selection** — choose a remote model or manage the availability of the local model.
-- **Secure credential storage** — protect stored API keys with Android Keystore-backed encryption.
-- **Personalized settings** — configure providers, models, themes, and profile preferences.
-- **Native Android experience** — a Jetpack Compose interface designed specifically for Android.
+- **Remote AI models** — configure compatible provider gateways, model IDs, and credentials.
+- **On-device AI** — run Dolphin 3.0 1B RP Uncensored or Gemma 1B locally using GGUF and `llama.cpp`.
+- **Streaming responses** — receive generated text as it arrives, with support for cancelling generation.
+- **Conversation history** — chats and messages are stored locally using Room.
+- **Private chat mode** — private conversations are excluded from the normal chat listing, search, and export flows.
+- **Model selection** — choose a configured remote model or manage local model downloads and availability.
+- **Credential protection** — stored API keys are protected using Android Keystore-backed encryption.
+- **Personalization** — configure models, themes, and profile preferences.
+- **Native Android UI** — built specifically for Android with Jetpack Compose and Material 3.
+- **Explicit model selection** — Aven does not silently switch to a different model when the selected one is unavailable.
 
-## How It Works
+## Remote AI or On-Device AI?
 
-Aven supports two approaches to AI inference.
+Aven supports both approaches, so you can choose based on your needs.
 
 | | Remote AI | On-device AI |
 |---|---|---|
 | Where inference happens | Remote provider | Your Android device |
-| Internet connection | Required | Not required for inference after the model is available |
-| Model choice | Supported provider models | Llama 3.2 1B Instruct |
-| API key | Depends on provider | Not required for local inference |
+| Internet for generation | Required | Not required after model download |
+| Model selection | User-configured remote models | Dolphin 3.0 1B RP Uncensored or Gemma 1B |
+| Provider API key | Usually required | Not required |
+| Model management | Configure endpoint and credentials | Download, load, or remove models |
 
-**Your choice matters.** Remote chats send requests to the selected provider. Local inference processes prompts on your device rather than sending them to a remote AI provider for generation.
+Remote requests are sent to the provider configured for the selected model. Local inference runs on your device and does not send prompts to a remote AI provider for generation. Other operations, such as downloading models or using remote services, still require connectivity.
 
-Some app operations, such as downloading a model or using a remote provider, still require an internet connection.
+## Tech Stack
 
-## Built With
-
-| Component | Technology |
+| Area | Technologies |
 |---|---|
 | Language | Kotlin |
 | UI | Jetpack Compose, Material 3 |
@@ -45,12 +45,12 @@ Some app operations, such as downloading a model or using a remote provider, sti
 | Networking | OkHttp |
 | Asynchronous work | Kotlin Coroutines and Flow |
 | Serialization | kotlinx.serialization |
-| Local inference | llama.cpp, JNI, CMake, Android NDK |
-| Testing | JUnit, Robolectric, MockWebServer |
+| On-device inference | llama.cpp, JNI, C++, CMake, Android NDK |
+| Testing | JUnit, Robolectric, MockWebServer, coroutine test utilities |
 
 ## Project Structure
 
-The codebase separates the user interface, AI engines, data storage, and security logic.
+The codebase separates the UI, inference engines, data storage, and security logic.
 
 ```text
 app/src/main/
@@ -73,12 +73,12 @@ app/src/main/
 │   └── MainActivity.kt
 └── cpp/
     ├── CMakeLists.txt
-    └── native inference code
+    └── native inference bridge
 ```
 
 ## Getting Started
 
-### Prerequisites
+### Requirements
 
 - Android Studio
 - JDK 17 or newer
@@ -87,7 +87,7 @@ app/src/main/
 - CMake `3.22.1`
 - An ARM64 Android device for the configured native inference build
 
-### Clone the Repository
+### Clone the repository
 
 ```bash
 git clone https://github.com/AlphaCore0038/Aven_Prototype.git
@@ -96,7 +96,7 @@ cd Aven_Prototype
 
 Open the project in Android Studio and allow Gradle to sync.
 
-### Build the Debug APK
+### Build the debug APK
 
 **Windows — PowerShell or Command Prompt**
 
@@ -116,7 +116,7 @@ The generated APK is located at:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Install on a Connected Device
+### Install on a connected device
 
 With Android Debug Bridge (`adb`) configured and USB debugging enabled:
 
@@ -124,25 +124,25 @@ With Android Debug Bridge (`adb`) configured and USB debugging enabled:
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Run Unit Tests
+### Run unit tests
 
-**Windows:**
+**Windows**
 
 ```bat
 gradlew.bat testDebugUnitTest
 ```
 
-**Linux or macOS:**
+**Linux or macOS**
 
 ```bash
 ./gradlew testDebugUnitTest
 ```
 
-## Configure API Keys
+## Configure Remote API Keys
 
-Aven lets you configure provider credentials through the app's settings.
+Remote model configurations and credentials can be managed in Aven's settings.
 
-For optional development defaults, create a `.env` file in the repository root. The file is read by the debug build configuration and is excluded from version control.
+For optional development defaults, create a `.env` file in the repository root. The debug build reads these values; `.env` is excluded from version control.
 
 ```properties
 AVEN_DEFAULT_ZEN_API_KEY=your_zen_api_key
@@ -151,26 +151,45 @@ AVEN_DEFAULT_ZAI_API_KEY=your_zai_api_key
 NVIDIA_NIM_API_KEY=your_nvidia_nim_api_key
 ```
 
-Only add the credentials you actually use.
+Add only the values you use. The corresponding provider or model must still be configured in the app.
 
-**Security notes:**
+**Security notes**
 
-- Never commit `.env`, real API keys, or other credentials to GitHub.
-- Debug-build defaults are intended for local development, not distribution.
-- Release builds do not include these configured API-key defaults.
-- Stored credentials are protected using Android Keystore-backed encryption.
+- Never commit `.env`, API keys, or other credentials to GitHub.
+- These defaults are for local debug builds, not for distributing a debug APK.
+- The Gradle release configuration sets these API-key defaults to empty strings.
+- API keys saved in the app are protected with Android Keystore-backed encryption.
+- If a credential is exposed, revoke or rotate it with the provider.
 
-If a credential is accidentally published, revoke or rotate it with the provider.
+## On-Device Models
 
-## Local Model
+Aven currently includes two local model options:
 
-Aven currently supports **Llama 3.2 1B Instruct** in GGUF format through `llama.cpp`.
+### Dolphin 3.0 1B RP Uncensored
 
-The default model configuration uses `Q4_K_M` quantization. The model is downloaded to app-private storage when needed, and the app manages its availability.
+The primary local model, distributed in GGUF format and run through `llama.cpp`. Aven uses a ChatML-style conversation format for this model.
 
-Performance depends on the device's available memory, processor, and model configuration. Model downloads can require significant storage and network data.
+### Gemma 1B
+
+An alternative based on Gemma 3 1B Instruct, also using GGUF and `llama.cpp`, with a Gemma-specific conversation format.
+
+Models are downloaded on demand to app-private storage. Aven manages download progress, loading, availability, and removal. The app is designed to keep only the selected local model resident in memory rather than loading both models at once.
+
+Local inference performance depends on device memory, processing capability, and model configuration. Model downloads require an internet connection and sufficient storage. After a model is downloaded, generation can run offline.
 
 The configured native build targets `arm64-v8a`.
+
+## Privacy
+
+Privacy is an important part of Aven's design.
+
+- API keys saved by the app are protected using Android Keystore-backed encryption.
+- Conversation data is stored locally using Room.
+- Local inference does not send prompts to a remote AI provider for generation.
+- Remote inference sends requests to the provider configured for the selected model.
+- Private chat mode excludes conversations from the app's normal listing, search, and export flows.
+
+These behaviors do not mean every app operation is offline or that all data is automatically end-to-end encrypted. Remote providers process requests according to their own services and policies.
 
 ## Testing
 
@@ -183,25 +202,11 @@ The JVM test suite covers areas including:
 - Model selection and local-model management
 - Chat-template construction
 
-Tests involving physical hardware, live services, model downloads, and actual Android Keystore behavior require separate device-level verification.
-
-## Privacy
-
-Privacy is an important part of Aven's design.
-
-- API keys are stored using Android Keystore-backed encryption.
-- Conversation data is stored locally using Room.
-- Local inference does not require sending prompts to a remote AI provider.
-- Remote inference sends requests to the provider you select.
-- Private chat mode excludes conversations from the app's normal listing, search, and export flows.
-
-These protections describe the app's implemented behavior; they do not mean every operation is offline or that all data is automatically end-to-end encrypted.
+Tests involving physical devices, live services, model downloads, or actual Android Keystore behavior require separate device-level verification.
 
 ## Project Status
 
-Aven is an actively developed Android project. Its repository contains the application source, native inference integration, and automated tests.
-
-Features, supported providers, and implementation details may evolve as development continues.
+Aven is an actively developed Android project. The repository contains the application source, native inference integration, and automated tests. Features and implementation details may evolve as development continues.
 
 ## Third-Party Software
 
