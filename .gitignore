@@ -35,3 +35,9 @@ Thumbs.db
 
 # UI design references
 /UI_type/
+
+# Generated codebase analysis
+/graphify-out/
+
+# Local coding-agent artifacts and plans
+/.artifacts/
